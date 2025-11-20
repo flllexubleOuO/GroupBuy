@@ -22,8 +22,16 @@ jobs:
 
       - name: Add EC2 to known hosts
         run: |
+          # 创建 .ssh 目录（使用更兼容的方法）
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          # 添加 EC2 主机到 known_hosts
+          # 注意：即使失败也不影响部署，因为已使用 StrictHostKeyChecking=no
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          # 设置 known_hosts 权限
+          if [ -f ~/.ssh/known_hosts ]; then
+            chmod 600 ~/.ssh/known_hosts
+          fi
 
       - name: Deploy to EC2
         env:
