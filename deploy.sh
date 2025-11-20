@@ -6,9 +6,7 @@ set -e  # 遇到错误立即退出
 
 echo "🚀 开始部署..."
 
-# 拉取最新代码
-echo "📥 拉取最新代码..."
-git pull origin main
+# 注意：代码已经通过 rsync 同步，不需要 git pull
 
 # 安装依赖
 echo "📦 安装依赖..."

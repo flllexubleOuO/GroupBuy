@@ -59,6 +59,38 @@ jobs:
             set -e
             cd ${DEPLOY_PATH}
             
+            # 检查并安装必要的软件（如果需要）
+            echo "🔍 检查系统依赖..."
+            
+            # 检查 Node.js
+            if ! command -v node &> /dev/null; then
+              echo "⚠️  Node.js 未安装，请先安装 Node.js"
+              exit 1
+            fi
+            
+            # 检查 npm
+            if ! command -v npm &> /dev/null; then
+              echo "⚠️  npm 未安装，请先安装 npm"
+              exit 1
+            fi
+            
+            # 检查 PM2
+            if ! command -v pm2 &> /dev/null; then
+              echo "⚠️  PM2 未安装，正在安装..."
+              sudo npm install -g pm2
+            fi
+            
+            # 检查 npx (Prisma 需要)
+            if ! command -v npx &> /dev/null; then
+              echo "⚠️  npx 未安装，请先安装 npm"
+              exit 1
+            fi
+            
+            echo "✅ 系统依赖检查完成"
+            echo "Node.js 版本: \$(node --version)"
+            echo "npm 版本: \$(npm --version)"
+            echo "PM2 版本: \$(pm2 --version)"
+            
             # 确保 deploy.sh 有执行权限
             chmod +x deploy.sh
             
