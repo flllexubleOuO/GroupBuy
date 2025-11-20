@@ -30,9 +30,9 @@ fi
 # 加载环境变量
 export $(cat .env | grep -v '^#' | xargs)
 
-# 安装依赖
-echo "📦 安装依赖..."
-npm install --production
+# 安装所有依赖（包括 devDependencies，用于构建）
+echo "📦 安装依赖（包括开发依赖，用于构建）..."
+npm install
 
 # 生成 Prisma Client
 echo "🔧 生成 Prisma Client..."
@@ -45,6 +45,11 @@ npx prisma migrate deploy
 # 构建项目
 echo "🏗️ 构建项目..."
 npm run build
+
+# 清理开发依赖（可选，节省空间）
+# 注意：如果后续需要重新构建，需要重新安装 devDependencies
+# echo "🧹 清理开发依赖..."
+# npm prune --production
 
 # 重启 PM2 进程
 echo "🔄 重启应用..."
