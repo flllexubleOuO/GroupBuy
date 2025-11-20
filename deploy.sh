@@ -34,6 +34,13 @@ export $(cat .env | grep -v '^#' | xargs)
 echo "📦 安装依赖（包括开发依赖，用于构建）..."
 npm install
 
+# 验证 TypeScript 安装
+echo "🔍 验证 TypeScript 安装..."
+if ! npx tsc --version; then
+  echo "❌ TypeScript 未正确安装，尝试重新安装..."
+  npm install typescript --save-dev
+fi
+
 # 生成 Prisma Client
 echo "🔧 生成 Prisma Client..."
 npx prisma generate
