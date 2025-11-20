@@ -27,8 +27,9 @@ else
   fi
 fi
 
-# 加载环境变量
-export $(cat .env | grep -v '^#' | xargs)
+# 加载环境变量（但暂时不设置 NODE_ENV，避免影响 npm install）
+ENV_VARS=$(cat .env | grep -v '^#' | grep -v '^NODE_ENV' | xargs)
+export $ENV_VARS
 
 # 清理旧的 node_modules（如果存在，确保全新安装）
 echo "🧹 清理旧的依赖（如果存在）..."
@@ -43,9 +44,19 @@ echo "当前目录: $(pwd)"
 echo "package.json 存在: $([ -f package.json ] && echo '是' || echo '否')"
 echo "package-lock.json 存在: $([ -f package-lock.json ] && echo '是' || echo '否')"
 
+# 临时取消 NODE_ENV，确保安装 devDependencies
+# npm install 在 NODE_ENV=production 时会跳过 devDependencies
+OLD_NODE_ENV=$NODE_ENV
+unset NODE_ENV
+
 # 确保安装所有依赖，包括 devDependencies
 # 不使用 --production 标志，这样会安装 devDependencies
 npm install --verbose
+
+# 恢复 NODE_ENV（如果需要）
+if [ -n "$OLD_NODE_ENV" ]; then
+  export NODE_ENV=$OLD_NODE_ENV
+fi
 
 # 检查 npm install 是否成功
 if [ $? -ne 0 ]; then
@@ -58,7 +69,10 @@ echo "🔍 验证 TypeScript 安装..."
 echo "检查 TypeScript 包..."
 if [ ! -d "node_modules/typescript" ]; then
   echo "⚠️  TypeScript 包不存在，显式安装..."
+  # 临时取消 NODE_ENV 确保安装 devDependencies
+  unset NODE_ENV
   npm install typescript@^5.3.3 --save-dev --force
+  export NODE_ENV=$OLD_NODE_ENV
   if [ $? -ne 0 ]; then
     echo "❌ TypeScript 安装失败"
     exit 1
@@ -82,15 +96,22 @@ else
   echo "❌ 找不到 TypeScript 编译器"
   echo "检查 node_modules/typescript 目录..."
   ls -la node_modules/typescript/ 2>/dev/null || echo "node_modules/typescript 不存在"
+  echo "检查 node_modules 目录..."
+  ls -la node_modules/ | head -20
   echo "尝试重新安装 TypeScript..."
   rm -rf node_modules/typescript
+  # 临时取消 NODE_ENV 确保安装 devDependencies
+  unset NODE_ENV
   npm install typescript@^5.3.3 --save-dev --force
+  export NODE_ENV=$OLD_NODE_ENV
   if [ -f "node_modules/.bin/tsc" ]; then
     TSC_PATH="node_modules/.bin/tsc"
   elif [ -f "node_modules/typescript/bin/tsc" ]; then
     TSC_PATH="node_modules/typescript/bin/tsc"
   else
     echo "❌ TypeScript 安装后仍找不到 tsc"
+    echo "检查安装后的 node_modules/typescript..."
+    ls -la node_modules/typescript/ 2>/dev/null || echo "仍然不存在"
     exit 1
   fi
 fi
