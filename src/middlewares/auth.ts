@@ -1,16 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 
-// 扩展 Express Request 类型以包含 session
-declare global {
-  namespace Express {
-    interface Request {
-      session?: {
-        isAuthenticated?: boolean;
-      };
-    }
-  }
-}
-
 /**
  * 检查用户是否已登录
  */

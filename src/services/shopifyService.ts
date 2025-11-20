@@ -79,11 +79,11 @@ class ShopifyService {
         allProducts.push(...products);
 
         // 检查是否有下一页
-        const linkHeader = response.headers.link;
+        const linkHeader: string | undefined = response.headers.link as string | undefined;
         if (linkHeader && linkHeader.includes('rel="next"')) {
-          const nextMatch = linkHeader.match(/<([^>]+)>; rel="next"/);
+          const nextMatch: RegExpMatchArray | null = linkHeader.match(/<([^>]+)>; rel="next"/);
           if (nextMatch) {
-            const fullNextUrl = nextMatch[1];
+            const fullNextUrl: string = nextMatch[1];
             // 提取相对路径（去掉 baseUrl）
             nextUrl = fullNextUrl.replace(this.baseUrl, '');
           } else {
