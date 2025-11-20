@@ -49,6 +49,7 @@ jobs:
           
           # 同步代码到服务器（排除不需要的文件）
           echo "📦 同步代码到服务器..."
+          echo "⚠️  重要：确保 prisma/migrations 目录被同步（用于数据库迁移）"
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.git' \
@@ -60,6 +61,19 @@ jobs:
             --exclude '.env' \
             --exclude '.DS_Store' \
             ./ ${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/
+          
+          # 验证迁移文件是否已同步
+          echo "🔍 验证迁移文件是否已同步..."
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+            cd ${DEPLOY_PATH}
+            if [ -d "prisma/migrations" ]; then
+              echo "✅ 迁移文件目录存在"
+              echo "迁移文件列表:"
+              ls -la prisma/migrations/ | head -10 || echo "迁移目录为空"
+            else
+              echo "❌ 警告：迁移文件目录不存在！"
+            fi
+          EOF
           
           # 在服务器上执行部署脚本
           echo "🔧 在服务器上执行部署..."

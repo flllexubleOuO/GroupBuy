@@ -8,24 +8,46 @@ echo "🚀 开始部署..."
 
 # 注意：代码已经通过 rsync 同步，不需要 git pull
 
+# 获取当前工作目录的绝对路径
+DEPLOY_DIR=$(pwd)
+echo "📂 当前部署目录: $DEPLOY_DIR"
+
 # 检查环境变量
 echo "🔍 检查环境变量..."
 if [ ! -f .env ]; then
   echo "⚠️  .env 文件不存在，创建默认配置..."
+  # 使用绝对路径，避免相对路径解析问题
   cat > .env << EOF
 NODE_ENV=production
 PORT=3000
-DATABASE_URL="file:./prisma/prod.db"
+DATABASE_URL="file:${DEPLOY_DIR}/prisma/prod.db"
 EOF
   echo "✅ 已创建默认 .env 文件"
+  echo "   数据库路径: ${DEPLOY_DIR}/prisma/prod.db"
 else
   echo "✅ .env 文件存在"
-  # 确保 DATABASE_URL 存在
-  if ! grep -q "DATABASE_URL" .env; then
+  # 检查并修复 DATABASE_URL（如果使用相对路径）
+  if grep -q "DATABASE_URL" .env; then
+    # 如果 DATABASE_URL 使用相对路径，更新为绝对路径
+    if grep -q 'DATABASE_URL="file:\./prisma' .env || grep -q "DATABASE_URL=file:\./prisma" .env; then
+      echo "⚠️  检测到相对路径，更新为绝对路径..."
+      # 备份原文件
+      cp .env .env.backup
+      # 更新为绝对路径
+      sed -i.bak "s|DATABASE_URL=\"file:\./prisma|DATABASE_URL=\"file:${DEPLOY_DIR}/prisma|g" .env
+      sed -i.bak "s|DATABASE_URL=file:\./prisma|DATABASE_URL=\"file:${DEPLOY_DIR}/prisma|g" .env
+      rm -f .env.bak
+      echo "✅ 已更新 DATABASE_URL 为绝对路径"
+    fi
+  else
     echo "⚠️  DATABASE_URL 未配置，添加默认值..."
-    echo 'DATABASE_URL="file:./prisma/prod.db"' >> .env
+    echo "DATABASE_URL=\"file:${DEPLOY_DIR}/prisma/prod.db\"" >> .env
   fi
 fi
+
+# 显示最终的 DATABASE_URL
+echo "📊 当前 DATABASE_URL 配置:"
+grep DATABASE_URL .env || echo "未找到 DATABASE_URL"
 
 # 加载环境变量（但暂时不设置 NODE_ENV，避免影响 npm install）
 ENV_VARS=$(cat .env | grep -v '^#' | grep -v '^NODE_ENV' | xargs)
@@ -126,13 +148,92 @@ else
   node node_modules/typescript/lib/tsc.js --version
 fi
 
+# 重新加载环境变量（确保使用更新后的 DATABASE_URL）
+echo "🔄 重新加载环境变量..."
+if [ -f .env ]; then
+  # 使用 source 或 export 加载环境变量
+  set -a
+  source .env 2>/dev/null || . .env 2>/dev/null || true
+  set +a
+  # 或者直接导出 DATABASE_URL
+  export DATABASE_URL=$(grep "^DATABASE_URL" .env | cut -d '=' -f2- | sed 's/^"//' | sed 's/"$//' | sed "s|^file:\./|file:${DEPLOY_DIR}/|")
+fi
+
+# 确保数据库目录存在
+echo "📁 确保数据库目录存在..."
+mkdir -p prisma
+chmod 755 prisma
+
+# 显示数据库配置信息
+echo "📊 数据库配置信息:"
+echo "  当前工作目录: $(pwd)"
+echo "  部署目录: $DEPLOY_DIR"
+echo "  DATABASE_URL: $DATABASE_URL"
+
+# 从 DATABASE_URL 提取实际文件路径并验证
+DB_PATH=$(echo $DATABASE_URL | sed 's|file:||' | sed 's|"||g')
+echo "  数据库文件路径: $DB_PATH"
+if [[ "$DB_PATH" == *"/prisma/prisma/"* ]]; then
+  echo "  ⚠️  警告：检测到路径重复（/prisma/prisma/），这可能导致问题"
+  # 修复路径
+  FIXED_PATH=$(echo $DB_PATH | sed 's|/prisma/prisma/|/prisma/|')
+  echo "  修复后的路径: $FIXED_PATH"
+  export DATABASE_URL="file:${FIXED_PATH}"
+  # 更新 .env 文件
+  sed -i.bak "s|DATABASE_URL=.*|DATABASE_URL=\"file:${FIXED_PATH}\"|g" .env
+  rm -f .env.bak
+  echo "  ✅ 已修复 DATABASE_URL"
+fi
+
+# 检查迁移文件是否存在
+echo "🔍 检查迁移文件..."
+if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations 2>/dev/null)" ]; then
+  echo "✅ 迁移文件存在"
+  ls -la prisma/migrations/ | head -10
+else
+  echo "⚠️  迁移文件目录不存在或为空"
+fi
+
 # 生成 Prisma Client
 echo "🔧 生成 Prisma Client..."
 npx prisma generate
 
 # 运行数据库迁移
 echo "🗄️ 运行数据库迁移..."
-npx prisma migrate deploy
+echo "当前工作目录: $(pwd)"
+echo "DATABASE_URL: $DATABASE_URL"
+
+# 使用 migrate deploy 执行迁移（适用于生产环境）
+# 这会应用所有未应用的迁移
+npx prisma migrate deploy 2>&1 | tee /tmp/migrate.log
+MIGRATE_EXIT_CODE=${PIPESTATUS[0]}
+
+if [ $MIGRATE_EXIT_CODE -ne 0 ]; then
+  echo "⚠️  migrate deploy 失败 (退出码: $MIGRATE_EXIT_CODE)"
+  echo "迁移日志:"
+  cat /tmp/migrate.log
+  
+  # 检查是否是数据库不存在的问题
+  if grep -q "does not exist" /tmp/migrate.log || grep -q "no such file" /tmp/migrate.log; then
+    echo "尝试使用 db push 同步 schema..."
+    npx prisma db push --accept-data-loss
+    if [ $? -eq 0 ]; then
+      echo "✅ 使用 db push 成功同步 schema"
+    else
+      echo "❌ db push 也失败"
+      exit 1
+    fi
+  else
+    echo "❌ 数据库迁移失败，请检查错误信息"
+    exit 1
+  fi
+else
+  echo "✅ 数据库迁移成功"
+fi
+
+# 验证迁移结果
+echo "🔍 验证数据库迁移状态..."
+npx prisma migrate status || echo "⚠️  无法检查迁移状态（可能数据库是新的）"
 
 # 构建项目
 echo "🏗️ 构建项目..."
