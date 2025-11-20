@@ -21,6 +21,12 @@ prisma/migrations/
 public/uploads/*
 !public/uploads/.gitkeep
 
+# Share images (keep these)
+!public/images/
+!public/images/*.jpg
+!public/images/*.png
+!public/images/*.jpeg
+
 # Logs
 logs/
 *.log

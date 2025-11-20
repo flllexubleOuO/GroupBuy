@@ -25,9 +25,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      // 只有在使用 HTTPS 时才设置 secure
+      // 如果使用 HTTP，secure 必须为 false，否则 cookie 不会被保存
+      secure: process.env.NODE_ENV === 'production' && process.env.USE_HTTPS === 'true',
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax', // 防止 CSRF 攻击
     },
   })
 );
@@ -37,7 +40,8 @@ app.use(routes);
 
 // 前台下单页面
 app.get('/order', (req: Request, res: Response) => {
-  res.render('public/order');
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.render('public/order', { baseUrl });
 });
 
 app.get('/group-buy', (req: Request, res: Response) => {

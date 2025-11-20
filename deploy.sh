@@ -136,23 +136,17 @@ npx prisma migrate deploy
 
 # 构建项目
 echo "🏗️ 构建项目..."
-# 使用找到的 tsc 路径
-if [ -f "node_modules/.bin/tsc" ]; then
-  ./node_modules/.bin/tsc
-elif [ -f "node_modules/typescript/bin/tsc" ]; then
-  ./node_modules/typescript/bin/tsc
-elif [ -f "node_modules/typescript/lib/tsc.js" ]; then
-  node node_modules/typescript/lib/tsc.js
-elif command -v tsc &> /dev/null; then
-  tsc
+npm run build
+
+# 确保视图文件已复制
+echo "📁 检查视图文件..."
+if [ ! -d "dist/views" ]; then
+  echo "⚠️ 视图目录不存在，手动复制..."
+  mkdir -p dist/views
+  cp -r src/views/* dist/views/
+  echo "✅ 视图文件已复制"
 else
-  echo "❌ 找不到 TypeScript 编译器"
-  echo "检查 node_modules 内容..."
-  echo "node_modules/.bin/ 内容:"
-  ls -la node_modules/.bin/ 2>/dev/null | head -20 || echo "node_modules/.bin/ 不存在"
-  echo "node_modules/typescript/ 内容:"
-  ls -la node_modules/typescript/ 2>/dev/null | head -20 || echo "node_modules/typescript/ 不存在"
-  exit 1
+  echo "✅ 视图目录已存在"
 fi
 
 # 清理开发依赖（可选，节省空间）
