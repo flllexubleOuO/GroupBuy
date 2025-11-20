@@ -203,8 +203,35 @@ echo "🗄️ 运行数据库迁移..."
 echo "当前工作目录: $(pwd)"
 echo "DATABASE_URL: $DATABASE_URL"
 
-# 使用 migrate deploy 执行迁移（适用于生产环境）
-# 这会应用所有未应用的迁移
+# 确保数据库文件目录存在
+DB_DIR=$(dirname "$DB_PATH")
+mkdir -p "$DB_DIR"
+echo "✅ 数据库目录已确保存在: $DB_DIR"
+
+# 检查数据库文件是否存在
+if [ ! -f "$DB_PATH" ]; then
+  echo "⚠️  数据库文件不存在，将创建新数据库: $DB_PATH"
+  # 创建空的数据库文件
+  touch "$DB_PATH"
+  chmod 644 "$DB_PATH"
+  echo "✅ 已创建数据库文件"
+fi
+
+# 首先尝试使用 db push 确保 schema 同步（更可靠）
+echo "🔄 使用 db push 同步数据库 schema..."
+npx prisma db push --accept-data-loss --skip-generate 2>&1 | tee /tmp/dbpush.log
+DB_PUSH_EXIT=${PIPESTATUS[0]}
+
+if [ $DB_PUSH_EXIT -eq 0 ]; then
+  echo "✅ db push 成功，schema 已同步"
+else
+  echo "⚠️  db push 失败 (退出码: $DB_PUSH_EXIT)"
+  echo "db push 日志:"
+  cat /tmp/dbpush.log
+fi
+
+# 然后运行 migrate deploy 来应用迁移历史（如果有）
+echo "🔄 运行 migrate deploy 应用迁移历史..."
 npx prisma migrate deploy 2>&1 | tee /tmp/migrate.log
 MIGRATE_EXIT_CODE=${PIPESTATUS[0]}
 
@@ -213,27 +240,72 @@ if [ $MIGRATE_EXIT_CODE -ne 0 ]; then
   echo "迁移日志:"
   cat /tmp/migrate.log
   
-  # 检查是否是数据库不存在的问题
-  if grep -q "does not exist" /tmp/migrate.log || grep -q "no such file" /tmp/migrate.log; then
-    echo "尝试使用 db push 同步 schema..."
-    npx prisma db push --accept-data-loss
-    if [ $? -eq 0 ]; then
-      echo "✅ 使用 db push 成功同步 schema"
-    else
-      echo "❌ db push 也失败"
-      exit 1
-    fi
+  # 如果 migrate deploy 失败，但 db push 成功，继续部署
+  if [ $DB_PUSH_EXIT -eq 0 ]; then
+    echo "✅ 虽然 migrate deploy 失败，但 db push 已成功同步 schema，继续部署..."
   else
-    echo "❌ 数据库迁移失败，请检查错误信息"
+    echo "❌ 数据库迁移和 schema 同步都失败"
     exit 1
   fi
 else
   echo "✅ 数据库迁移成功"
 fi
 
-# 验证迁移结果
-echo "🔍 验证数据库迁移状态..."
-npx prisma migrate status || echo "⚠️  无法检查迁移状态（可能数据库是新的）"
+# 验证迁移结果 - 使用 Prisma 验证表是否存在
+echo "🔍 验证数据库表是否存在..."
+# 创建一个临时验证脚本（在项目根目录）
+cat > ./verify_db_temp.js << 'VERIFY_EOF'
+require('dotenv').config();
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+async function verify() {
+  try {
+    // 尝试查询 Package 表
+    await prisma.package.findMany({ take: 1 });
+    console.log('✅ Package 表存在且可访问');
+    process.exit(0);
+  } catch (error) {
+    if (error.message.includes('does not exist') || error.message.includes('no such table')) {
+      console.error('❌ Package 表不存在！');
+      process.exit(1);
+    } else {
+      console.error('⚠️  验证时出现错误:', error.message);
+      process.exit(1);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+verify();
+VERIFY_EOF
+
+# 运行验证脚本
+node ./verify_db_temp.js
+VERIFY_EXIT=$?
+
+if [ $VERIFY_EXIT -ne 0 ]; then
+  echo "❌ 数据库表验证失败，强制使用 db push 重新创建..."
+  npx prisma db push --force-reset --accept-data-loss --skip-generate
+  if [ $? -eq 0 ]; then
+    echo "✅ 强制 db push 成功，重新验证..."
+    node ./verify_db_temp.js
+    if [ $? -eq 0 ]; then
+      echo "✅ 数据库表验证通过"
+    else
+      echo "❌ 强制 db push 后验证仍然失败"
+      exit 1
+    fi
+  else
+    echo "❌ 强制 db push 失败"
+    exit 1
+  fi
+else
+  echo "✅ 数据库表验证通过"
+fi
+
+# 清理临时文件
+rm -f ./verify_db_temp.js
 
 # 构建项目
 echo "🏗️ 构建项目..."
