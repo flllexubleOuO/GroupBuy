@@ -55,28 +55,54 @@ fi
 
 # 验证并确保 TypeScript 已安装
 echo "🔍 验证 TypeScript 安装..."
-echo "检查 node_modules/.bin/tsc..."
-ls -la node_modules/.bin/tsc 2>/dev/null || echo "node_modules/.bin/tsc 不存在"
-
-if [ ! -f "node_modules/.bin/tsc" ] && [ ! -f "node_modules/typescript/bin/tsc" ]; then
-  echo "⚠️  TypeScript 未找到，显式安装..."
-  npm install typescript@^5.3.3 --save-dev
+echo "检查 TypeScript 包..."
+if [ ! -d "node_modules/typescript" ]; then
+  echo "⚠️  TypeScript 包不存在，显式安装..."
+  npm install typescript@^5.3.3 --save-dev --force
   if [ $? -ne 0 ]; then
     echo "❌ TypeScript 安装失败"
     exit 1
   fi
 fi
 
-# 验证安装
+# 检查 tsc 可执行文件
+echo "查找 tsc 可执行文件..."
+TSC_PATH=""
 if [ -f "node_modules/.bin/tsc" ]; then
-  echo "✅ TypeScript 已安装: $(./node_modules/.bin/tsc --version)"
+  TSC_PATH="node_modules/.bin/tsc"
+  echo "✅ 找到 tsc: $TSC_PATH"
 elif [ -f "node_modules/typescript/bin/tsc" ]; then
-  echo "✅ TypeScript 已安装: $(./node_modules/typescript/bin/tsc --version)"
+  TSC_PATH="node_modules/typescript/bin/tsc"
+  echo "✅ 找到 tsc: $TSC_PATH"
+elif [ -f "node_modules/typescript/lib/tsc.js" ]; then
+  # 使用 node 运行 tsc.js
+  TSC_PATH="node node_modules/typescript/lib/tsc.js"
+  echo "✅ 找到 tsc.js，将使用 node 运行"
 else
-  echo "❌ TypeScript 安装失败"
-  echo "尝试检查 node_modules..."
-  ls -la node_modules/.bin/ | grep tsc || echo "tsc 不在 node_modules/.bin/"
-  exit 1
+  echo "❌ 找不到 TypeScript 编译器"
+  echo "检查 node_modules/typescript 目录..."
+  ls -la node_modules/typescript/ 2>/dev/null || echo "node_modules/typescript 不存在"
+  echo "尝试重新安装 TypeScript..."
+  rm -rf node_modules/typescript
+  npm install typescript@^5.3.3 --save-dev --force
+  if [ -f "node_modules/.bin/tsc" ]; then
+    TSC_PATH="node_modules/.bin/tsc"
+  elif [ -f "node_modules/typescript/bin/tsc" ]; then
+    TSC_PATH="node_modules/typescript/bin/tsc"
+  else
+    echo "❌ TypeScript 安装后仍找不到 tsc"
+    exit 1
+  fi
+fi
+
+# 验证 TypeScript 版本
+echo "验证 TypeScript 版本..."
+if [ -f "node_modules/.bin/tsc" ]; then
+  ./node_modules/.bin/tsc --version
+elif [ -f "node_modules/typescript/bin/tsc" ]; then
+  ./node_modules/typescript/bin/tsc --version
+else
+  node node_modules/typescript/lib/tsc.js --version
 fi
 
 # 生成 Prisma Client
@@ -89,17 +115,22 @@ npx prisma migrate deploy
 
 # 构建项目
 echo "🏗️ 构建项目..."
-# 使用 node_modules 中的 tsc（最可靠的方法）
+# 使用找到的 tsc 路径
 if [ -f "node_modules/.bin/tsc" ]; then
   ./node_modules/.bin/tsc
 elif [ -f "node_modules/typescript/bin/tsc" ]; then
   ./node_modules/typescript/bin/tsc
+elif [ -f "node_modules/typescript/lib/tsc.js" ]; then
+  node node_modules/typescript/lib/tsc.js
 elif command -v tsc &> /dev/null; then
   tsc
 else
   echo "❌ 找不到 TypeScript 编译器"
   echo "检查 node_modules 内容..."
-  ls -la node_modules/.bin/ 2>/dev/null | head -20
+  echo "node_modules/.bin/ 内容:"
+  ls -la node_modules/.bin/ 2>/dev/null | head -20 || echo "node_modules/.bin/ 不存在"
+  echo "node_modules/typescript/ 内容:"
+  ls -la node_modules/typescript/ 2>/dev/null | head -20 || echo "node_modules/typescript/ 不存在"
   exit 1
 fi
 
