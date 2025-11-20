@@ -71,8 +71,18 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
       }
     }
 
-    // 保存付款截图路径（相对于 public 目录，仅立即转账时需要）
-    const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
+    // 保存付款截图路径
+    // 如果启用了 S3，使用 S3 URL；否则使用本地路径
+    let screenshotPath: string | null = null;
+    if (req.file) {
+      if (req.file.s3Url) {
+        // 使用 S3 URL
+        screenshotPath = req.file.s3Url;
+      } else {
+        // 使用本地路径（相对于 public 目录）
+        screenshotPath = `/uploads/${req.file.filename}`;
+      }
+    }
 
     // 获取套餐的大区信息（如果订单关联了套餐）
     let orderRegion: string | null = null;

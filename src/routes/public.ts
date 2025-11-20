@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createOrder, getOrdersByPhone } from '../controllers/orderController';
 import { getActivePackages } from '../controllers/packageController';
 import { getProducts } from '../controllers/adminController';
-import { upload } from '../middlewares/upload';
+import { uploadWithS3 } from '../middlewares/upload';
 
 const router = Router();
 
@@ -12,8 +12,8 @@ router.get('/api/packages', getActivePackages);
 // 获取商品列表（用于套餐创建时选择）
 router.get('/api/products', getProducts);
 
-// 创建订单
-router.post('/api/orders', upload.single('payment_screenshot'), createOrder);
+// 创建订单（使用 S3 上传中间件）
+router.post('/api/orders', uploadWithS3, createOrder);
 
 // 根据手机号查询订单（公开接口）
 router.get('/api/orders/query', getOrdersByPhone);

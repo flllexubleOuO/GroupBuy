@@ -1,10 +1,7 @@
 name: Deploy to EC2
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch: # 仅手动触发（在 GitHub Actions 页面点击 "Run workflow" 按钮）
 
 jobs:
   deploy:
