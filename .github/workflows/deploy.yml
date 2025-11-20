@@ -1,0 +1,88 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  deploy:
+    name: Deploy to EC2 Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+        run: |
+          echo "🚀 开始部署到 EC2..."
+          
+          # 设置默认部署路径
+          DEPLOY_PATH="${EC2_DEPLOY_PATH:-/home/ec2-user/tuangou-project}"
+          
+          # 创建部署路径（如果不存在）
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${DEPLOY_PATH}"
+          
+          # 同步代码到服务器（排除不需要的文件）
+          echo "📦 同步代码到服务器..."
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'dist' \
+            --exclude '*.db' \
+            --exclude '*.db-journal' \
+            --exclude 'logs' \
+            --exclude 'public/uploads' \
+            --exclude '.env' \
+            --exclude '.DS_Store' \
+            ./ ${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/
+          
+          # 在服务器上执行部署脚本
+          echo "🔧 在服务器上执行部署..."
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+            set -e
+            cd ${DEPLOY_PATH}
+            
+            # 确保 deploy.sh 有执行权限
+            chmod +x deploy.sh
+            
+            # 执行部署脚本
+            ./deploy.sh
+            
+            echo "✅ 部署完成！"
+          EOF
+          
+          echo "🎉 部署成功！"
+
+      - name: Deployment Status
+        if: success()
+        env:
+          EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH="${EC2_DEPLOY_PATH:-/home/ec2-user/tuangou-project}"
+          echo "✅ 部署成功完成！"
+          echo "服务器地址: ${{ secrets.EC2_HOST }}"
+          echo "部署路径: ${DEPLOY_PATH}"
+
+      - name: Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ 部署失败，请检查日志"
+          exit 1
+
