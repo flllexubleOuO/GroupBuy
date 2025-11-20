@@ -30,15 +30,53 @@ fi
 # 加载环境变量
 export $(cat .env | grep -v '^#' | xargs)
 
+# 清理旧的 node_modules（如果存在，确保全新安装）
+echo "🧹 清理旧的依赖（如果存在）..."
+if [ -d "node_modules" ]; then
+  echo "删除旧的 node_modules..."
+  rm -rf node_modules
+fi
+
 # 安装所有依赖（包括 devDependencies，用于构建）
 echo "📦 安装依赖（包括开发依赖，用于构建）..."
-npm install
+echo "当前目录: $(pwd)"
+echo "package.json 存在: $([ -f package.json ] && echo '是' || echo '否')"
+echo "package-lock.json 存在: $([ -f package-lock.json ] && echo '是' || echo '否')"
 
-# 验证 TypeScript 安装
+# 确保安装所有依赖，包括 devDependencies
+# 不使用 --production 标志，这样会安装 devDependencies
+npm install --verbose
+
+# 检查 npm install 是否成功
+if [ $? -ne 0 ]; then
+  echo "❌ npm install 失败"
+  exit 1
+fi
+
+# 验证并确保 TypeScript 已安装
 echo "🔍 验证 TypeScript 安装..."
-if ! npx tsc --version; then
-  echo "❌ TypeScript 未正确安装，尝试重新安装..."
-  npm install typescript --save-dev
+echo "检查 node_modules/.bin/tsc..."
+ls -la node_modules/.bin/tsc 2>/dev/null || echo "node_modules/.bin/tsc 不存在"
+
+if [ ! -f "node_modules/.bin/tsc" ] && [ ! -f "node_modules/typescript/bin/tsc" ]; then
+  echo "⚠️  TypeScript 未找到，显式安装..."
+  npm install typescript@^5.3.3 --save-dev
+  if [ $? -ne 0 ]; then
+    echo "❌ TypeScript 安装失败"
+    exit 1
+  fi
+fi
+
+# 验证安装
+if [ -f "node_modules/.bin/tsc" ]; then
+  echo "✅ TypeScript 已安装: $(./node_modules/.bin/tsc --version)"
+elif [ -f "node_modules/typescript/bin/tsc" ]; then
+  echo "✅ TypeScript 已安装: $(./node_modules/typescript/bin/tsc --version)"
+else
+  echo "❌ TypeScript 安装失败"
+  echo "尝试检查 node_modules..."
+  ls -la node_modules/.bin/ | grep tsc || echo "tsc 不在 node_modules/.bin/"
+  exit 1
 fi
 
 # 生成 Prisma Client
@@ -51,7 +89,19 @@ npx prisma migrate deploy
 
 # 构建项目
 echo "🏗️ 构建项目..."
-npm run build
+# 使用 node_modules 中的 tsc（最可靠的方法）
+if [ -f "node_modules/.bin/tsc" ]; then
+  ./node_modules/.bin/tsc
+elif [ -f "node_modules/typescript/bin/tsc" ]; then
+  ./node_modules/typescript/bin/tsc
+elif command -v tsc &> /dev/null; then
+  tsc
+else
+  echo "❌ 找不到 TypeScript 编译器"
+  echo "检查 node_modules 内容..."
+  ls -la node_modules/.bin/ 2>/dev/null | head -20
+  exit 1
+fi
 
 # 清理开发依赖（可选，节省空间）
 # 注意：如果后续需要重新构建，需要重新安装 devDependencies
