@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="orderList()" x-cloak>
+        <!-- Header -->
+        <div class="bg-white shadow-sm mb-6">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/admin/packages" class="text-blue-600 hover:text-blue-900">套餐管理</a>
+                    <h1 class="text-2xl font-bold text-gray-900">订单管理</h1>
+                </div>
+                <form method="POST" action="/admin/logout" class="inline">
+                    <button type="submit" class="text-gray-600 hover:text-gray-900">退出登录</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="max-w-7xl mx-auto px-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">订单状态</label>
+                        <select x-model="filters.status" @change="loadOrders()" 
+                                class="w-full px-4 py-2 border rounded-lg">
+                            <option value="all">全部</option>
+                            <option value="new">新订单</option>
+                            <option value="paid_confirmed">已确认付款</option>
+                            <option value="preparing">备货中</option>
+                            <option value="delivering">派送中</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">大区</label>
+                        <select x-model="filters.region" @change="loadOrders()" 
+                                class="w-full px-4 py-2 border rounded-lg">
+                            <option value="">全部</option>
+                            <option value="中区">中区</option>
+                            <option value="西区">西区</option>
+                            <option value="北岸">北岸</option>
+                            <option value="东区">东区</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">配送日期</label>
+                        <input type="date" x-model="filters.deliveryDate" @change="loadOrders()"
+                               class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">手机号搜索</label>
+                        <input type="text" x-model="filters.phone" @input.debounce.500ms="loadOrders()"
+                               placeholder="输入手机号"
+                               class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center space-x-4">
+                    <button @click="loadOrders()" 
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                        搜索
+                    </button>
+                    <button @click="openRoutePlanning()" 
+                            :disabled="!canPlanRoute"
+                            class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        路线规划
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div x-show="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- Orders Table -->
+        <div x-show="!loading" class="max-w-7xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客户姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手机号</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">地址</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">大区</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">配送时间</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shopify订单</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="order in orders" :key="order.id">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900" x-text="order.id.substring(0, 8)"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="order.customerName"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="order.phone"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" x-text="order.address"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span x-show="order.region" 
+                                              class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                                              x-text="order.region"></span>
+                                        <span x-show="!order.region" class="text-gray-400">-</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="order.deliveryTime"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full" 
+                                              :class="getStatusClass(order.internalStatus)"
+                                              x-text="getStatusText(order.internalStatus)"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <template x-if="order.shopifyOrderId">
+                                            <a :href="'https://rhrw1p-nb.myshopify.com/admin/orders/' + order.shopifyOrderId" 
+                                               target="_blank"
+                                               class="text-blue-600 hover:underline" 
+                                               x-text="order.shopifyOrderId"></a>
+                                        </template>
+                                        <span x-show="!order.shopifyOrderId" class="text-gray-400">-</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(order.createdAt)"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="flex items-center space-x-3">
+                                            <a :href="'/admin/orders/' + order.id" 
+                                               class="text-blue-600 hover:text-blue-900">查看详情</a>
+                                            <button @click="deleteOrder(order)" 
+                                                    class="text-red-600 hover:text-red-900">
+                                                删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div x-show="pagination.totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        共 <span x-text="pagination.total"></span> 条，第 <span x-text="pagination.page"></span> / <span x-text="pagination.totalPages"></span> 页
+                    </div>
+                    <div class="flex space-x-2">
+                        <button @click="changePage(pagination.page - 1)" 
+                                :disabled="pagination.page === 1"
+                                class="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            上一页
+                        </button>
+                        <button @click="changePage(pagination.page + 1)" 
+                                :disabled="pagination.page >= pagination.totalPages"
+                                class="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            下一页
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Planning Modal -->
+        <div x-show="showRouteModal" 
+             @click.self="closeRouteModal()"
+             x-transition
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+             style="display: none;">
+            <div @click.stop class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-900">路线规划</h2>
+                        <button @click="closeRouteModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                    </div>
+                    
+                    <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-700">
+                            <strong>大区：</strong><span x-text="filters.region"></span> | 
+                            <strong>配送日期：</strong><span x-text="filters.deliveryDate"></span> | 
+                            <strong>订单数量：</strong><span x-text="routeOrders.length"></span>
+                        </p>
+                    </div>
+
+                    <div class="mb-4 space-y-2">
+                        <button @click="generateGoogleMapsRoute()" 
+                                class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                            在 Google Maps 中打开路线规划
+                        </button>
+                        <p class="text-xs text-gray-500 text-center">
+                            💡 提示：当前路径按订单顺序排列，Google Maps 会尽量优化，但可能不是绝对最优。如需更精确优化，建议在 Google Maps 中手动调整顺序。
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template x-for="(order, index) in routeOrders" :key="order.id">
+                            <div class="border rounded-lg p-3 hover:bg-gray-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <span class="text-sm font-semibold text-gray-900" x-text="'#' + (index + 1)"></span>
+                                            <span class="text-sm font-medium text-gray-900" x-text="order.customerName"></span>
+                                            <span class="text-sm text-gray-600" x-text="order.phone"></span>
+                                        </div>
+                                        <p class="text-sm text-gray-700" x-text="order.address"></p>
+                                    </div>
+                                    <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(order.address)"
+                                       target="_blank"
+                                       class="ml-4 text-blue-600 hover:text-blue-900 text-sm whitespace-nowrap">
+                                        在地图中查看
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function orderList() {
+            return {
+                loading: true,
+                orders: [],
+                filters: {
+                    status: '<%= status || "all" %>',
+                    region: '',
+                    deliveryDate: '',
+                    phone: '<%= phone || "" %>',
+                },
+                showRouteModal: false,
+                routeOrders: [],
+                pagination: {
+                    page: 1,
+                    limit: 20,
+                    total: 0,
+                    totalPages: 0,
+                },
+
+                async init() {
+                    await this.loadOrders();
+                },
+
+                async loadOrders() {
+                    this.loading = true;
+                    try {
+                        const params = new URLSearchParams();
+                        if (this.filters.status !== 'all') params.append('status', this.filters.status);
+                        if (this.filters.region) params.append('region', this.filters.region);
+                        if (this.filters.deliveryDate) params.append('deliveryDate', this.filters.deliveryDate);
+                        if (this.filters.phone) params.append('phone', this.filters.phone);
+                        params.append('page', this.pagination.page);
+                        params.append('limit', this.pagination.limit);
+
+                        const response = await fetch(`/admin/api/orders?${params}`);
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.orders = data.orders || [];
+                            this.pagination = data.pagination || this.pagination;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('加载订单失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                changePage(page) {
+                    if (page >= 1 && page <= this.pagination.totalPages) {
+                        this.pagination.page = page;
+                        this.loadOrders();
+                    }
+                },
+
+                getStatusText(status) {
+                    const statusMap = {
+                        'new': '新订单',
+                        'paid_confirmed': '已确认付款',
+                        'preparing': '备货中',
+                        'delivering': '派送中',
+                        'completed': '已完成',
+                        'cancelled': '已取消',
+                    };
+                    return statusMap[status] || status;
+                },
+
+                getStatusClass(status) {
+                    const classMap = {
+                        'new': 'bg-yellow-100 text-yellow-800',
+                        'paid_confirmed': 'bg-blue-100 text-blue-800',
+                        'preparing': 'bg-purple-100 text-purple-800',
+                        'delivering': 'bg-indigo-100 text-indigo-800',
+                        'completed': 'bg-green-100 text-green-800',
+                        'cancelled': 'bg-red-100 text-red-800',
+                    };
+                    return classMap[status] || 'bg-gray-100 text-gray-800';
+                },
+
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleString('zh-CN');
+                },
+
+                get canPlanRoute() {
+                    // 检查是否有筛选条件：大区和配送日期，并且有订单
+                    return !!(this.filters.region && this.filters.deliveryDate && this.orders.length > 0);
+                },
+
+                openRoutePlanning() {
+                    console.log('openRoutePlanning called', {
+                        canPlanRoute: this.canPlanRoute,
+                        region: this.filters.region,
+                        deliveryDate: this.filters.deliveryDate,
+                        ordersLength: this.orders.length
+                    });
+                    
+                    if (!this.canPlanRoute) {
+                        alert('请先选择大区和配送日期进行筛选');
+                        return;
+                    }
+                    
+                    // 收集当前筛选结果中的订单（已经是筛选后的结果）
+                    // 再次过滤确保大区和日期匹配
+                    this.routeOrders = this.orders.filter(order => {
+                        const regionMatch = !this.filters.region || order.region === this.filters.region;
+                        const dateMatch = !this.filters.deliveryDate || 
+                            (order.deliveryTime && order.deliveryTime.includes(this.filters.deliveryDate));
+                        return regionMatch && dateMatch;
+                    });
+                    
+                    console.log('Filtered routeOrders:', this.routeOrders);
+                    
+                    if (this.routeOrders.length === 0) {
+                        alert('没有符合条件的订单');
+                        return;
+                    }
+                    
+                    this.showRouteModal = true;
+                    console.log('Modal should be shown, showRouteModal:', this.showRouteModal);
+                },
+
+                closeRouteModal() {
+                    this.showRouteModal = false;
+                    this.routeOrders = [];
+                },
+
+                generateGoogleMapsRoute() {
+                    if (this.routeOrders.length === 0) return;
+                    
+                    // 固定的起始点地址
+                    const startAddress = '22 Moselle Avenue, Henderson, Auckland 0610';
+                    const origin = encodeURIComponent(startAddress);
+                    
+                    // 构建 Google Maps 路线规划 URL
+                    // 使用固定的起始点，所有订单地址作为途经点或终点
+                    if (this.routeOrders.length === 1) {
+                        // 只有一个订单，从固定起点导航到该地址
+                        const destination = encodeURIComponent(this.routeOrders[0].address);
+                        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+                        window.open(googleMapsUrl, '_blank');
+                    } else {
+                        // 多个订单，使用 optimize:true 参数让 Google Maps 自动优化路径顺序
+                        // 注意：Google Maps Web URL 不支持 optimize 参数，但会尽量优化
+                        // 所有订单地址作为途经点，起点和终点固定
+                        const waypoints = this.routeOrders
+                            .map(order => encodeURIComponent(order.address))
+                            .join('|');
+                        
+                        // 使用 optimize:true 参数（虽然 Web URL 不完全支持，但 Google Maps 会尽量优化）
+                        // 更好的方案是使用 Directions API，但需要 API Key
+                        // 这里我们使用所有地址作为 waypoints，让 Google Maps 自动优化顺序
+                        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${origin}&waypoints=${waypoints}`;
+                        window.open(googleMapsUrl, '_blank');
+                    }
+                },
+
+                async deleteOrder(order) {
+                    const message = order.shopifyOrderId
+                        ? `确定要删除订单 ${order.id.substring(0, 8)} 吗？\n\n此操作将同时删除：\n- 本地订单记录\n- Shopify订单 ${order.shopifyOrderId}\n\n此操作不可恢复！`
+                        : `确定要删除订单 ${order.id.substring(0, 8)} 吗？\n\n此操作将删除本地订单记录。此操作不可恢复！`;
+                    
+                    if (!confirm(message)) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/admin/api/orders/${order.id}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('订单已删除');
+                            await this.loadOrders();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('删除订单失败');
+                    }
+                },
+            };
+        }
+    </script>
+</body>
+</html>
+

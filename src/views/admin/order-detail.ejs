@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单详情</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white;
+            }
+            .print-container {
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="orderDetail()" x-cloak>
+        <!-- Header -->
+        <div class="bg-white shadow-sm mb-6 no-print">
+            <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/admin/orders" class="text-blue-600 hover:text-blue-900">← 返回列表</a>
+                    <h1 class="text-2xl font-bold text-gray-900">订单详情</h1>
+                </div>
+                <button @click="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    打印订单
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div x-show="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- Order Details -->
+        <div x-show="!loading && order" class="max-w-4xl mx-auto px-4 pb-12 print-container">
+            <div class="bg-white rounded-lg shadow-sm p-8">
+                <!-- Order Header -->
+                <div class="border-b pb-6 mb-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-2">订单详情</h2>
+                            <p class="text-gray-600">订单ID: <span class="font-mono" x-text="order.id"></span></p>
+                            <p class="text-gray-600" x-show="order.shopifyOrderId">
+                                Shopify订单: 
+                                <a :href="'https://rhrw1p-nb.myshopify.com/admin/orders/' + order.shopifyOrderId" 
+                                   target="_blank"
+                                   class="text-blue-600 hover:underline font-mono" 
+                                   x-text="order.shopifyOrderId"></a>
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="mb-2">
+                                <span class="px-3 py-1 text-sm font-semibold rounded-full" 
+                                      :class="getStatusClass(order.internalStatus)"
+                                      x-text="getStatusText(order.internalStatus)"></span>
+                            </div>
+                            <p class="text-sm text-gray-500" x-text="formatDate(order.createdAt)"></p>
+                            <button @click="deleteOrder()" 
+                                    class="mt-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                                删除订单
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">客户信息</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">姓名</p>
+                            <p class="text-base font-medium" x-text="order.customerName"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">手机号</p>
+                            <p class="text-base font-medium" x-text="order.phone"></p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">收货地址</p>
+                            <p class="text-base font-medium" x-text="order.address"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">期望配送时间</p>
+                            <p class="text-base font-medium" x-text="order.deliveryTime"></p>
+                        </div>
+                        <div x-show="order.optionalNote" class="md:col-span-2">
+                            <p class="text-sm text-gray-600">备注</p>
+                            <p class="text-base" x-text="order.optionalNote"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">商品明细</h3>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品名称</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">单价</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">数量</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">小计</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="item in order.items" :key="item.title">
+                                <tr>
+                                    <td class="px-4 py-3 text-sm text-gray-900" x-text="item.title"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 text-right" x-text="'$' + parseFloat(item.price).toFixed(2)"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 text-right" x-text="item.quantity"></td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right" 
+                                        x-text="'$' + (parseFloat(item.price) * item.quantity).toFixed(2)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">总计：</td>
+                                <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right" x-text="'$' + total.toFixed(2)"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Payment Info -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">支付信息</h3>
+                    <div class="border rounded-lg p-4 bg-gray-50">
+                        <div class="mb-3">
+                            <span class="text-sm font-medium text-gray-700">支付方式：</span>
+                            <span class="ml-2 px-2 py-1 text-sm font-semibold rounded"
+                                  :class="order.paymentMethod === 'transfer' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'"
+                                  x-text="order.paymentMethod === 'transfer' ? '立即转账' : '送货到户时付款'"></span>
+                        </div>
+                        <div x-show="order.paymentMethod === 'transfer' && order.paymentScreenshotPath">
+                            <p class="text-sm font-medium text-gray-700 mb-2">付款截图：</p>
+                            <img :src="order.paymentScreenshotPath" 
+                                 alt="付款截图" 
+                                 @click="showImageModal = true"
+                                 class="max-w-full h-auto cursor-pointer rounded border border-gray-300">
+                        </div>
+                        <div x-show="order.paymentMethod === 'cash_on_delivery'" class="text-sm text-gray-600">
+                            <p>此订单将在送货时现场收款</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Update -->
+                <div class="border-t pt-6 no-print">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">更新订单状态</h3>
+                    <div class="flex items-center space-x-4">
+                        <select x-model="newStatus" 
+                                class="px-4 py-2 border rounded-lg">
+                            <option value="new">新订单</option>
+                            <option value="paid_confirmed">已确认付款</option>
+                            <option value="preparing">备货中</option>
+                            <option value="delivering">派送中</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                        <button @click="updateStatus()" 
+                                :disabled="updating || newStatus === order.internalStatus"
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <span x-show="!updating">保存</span>
+                            <span x-show="updating">保存中...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Modal -->
+        <div x-show="showImageModal" 
+             @click="showImageModal = false"
+             class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 no-print"
+             style="display: none;">
+            <div @click.stop class="max-w-4xl max-h-full p-4">
+                <img :src="order?.paymentScreenshotPath" 
+                     alt="付款截图" 
+                     class="max-w-full max-h-full object-contain rounded">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function orderDetail() {
+            return {
+                loading: true,
+                order: null,
+                newStatus: '',
+                updating: false,
+                showImageModal: false,
+
+                async init() {
+                    const orderId = '<%= orderId %>';
+                    await this.loadOrder(orderId);
+                },
+
+                async loadOrder(orderId) {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/admin/api/orders/${orderId}`);
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.order = data;
+                            this.newStatus = data.internalStatus;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('加载订单失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async updateStatus() {
+                    if (this.newStatus === this.order.internalStatus) return;
+
+                    this.updating = true;
+                    try {
+                        const response = await fetch(`/admin/api/orders/${this.order.id}/status`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ status: this.newStatus }),
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.order.internalStatus = this.newStatus;
+                            alert('状态更新成功');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('更新失败');
+                    } finally {
+                        this.updating = false;
+                    }
+                },
+
+                get total() {
+                    if (!this.order || !this.order.items) return 0;
+                    return this.order.items.reduce((sum, item) => {
+                        return sum + parseFloat(item.price) * item.quantity;
+                    }, 0);
+                },
+
+                getStatusText(status) {
+                    const statusMap = {
+                        'new': '新订单',
+                        'paid_confirmed': '已确认付款',
+                        'preparing': '备货中',
+                        'delivering': '派送中',
+                        'completed': '已完成',
+                        'cancelled': '已取消',
+                    };
+                    return statusMap[status] || status;
+                },
+
+                getStatusClass(status) {
+                    const classMap = {
+                        'new': 'bg-yellow-100 text-yellow-800',
+                        'paid_confirmed': 'bg-blue-100 text-blue-800',
+                        'preparing': 'bg-purple-100 text-purple-800',
+                        'delivering': 'bg-indigo-100 text-indigo-800',
+                        'completed': 'bg-green-100 text-green-800',
+                        'cancelled': 'bg-red-100 text-red-800',
+                    };
+                    return classMap[status] || 'bg-gray-100 text-gray-800';
+                },
+
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleString('zh-CN');
+                },
+
+                async deleteOrder() {
+                    const message = this.order.shopifyOrderId
+                        ? `确定要删除此订单吗？\n\n此操作将同时删除：\n- 本地订单记录\n- Shopify订单 ${this.order.shopifyOrderId}\n\n此操作不可恢复！`
+                        : `确定要删除此订单吗？\n\n此操作将删除本地订单记录。此操作不可恢复！`;
+                    
+                    if (!confirm(message)) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/admin/api/orders/${this.order.id}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('订单已删除');
+                            window.location.href = '/admin/orders';
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('删除订单失败');
+                    }
+                },
+            };
+        }
+    </script>
+</body>
+</html>
+

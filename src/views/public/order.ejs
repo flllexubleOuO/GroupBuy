@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团购下单</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* 移动端优化 */
+        @media (max-width: 640px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .max-w-2xl {
+                max-width: 100%;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+            
+            /* 套餐卡片移动端优化 */
+            .package-card {
+                padding: 1rem;
+            }
+            
+            .package-card img {
+                width: 60px;
+                height: 60px;
+            }
+            
+            /* 价格显示优化 */
+            .price-section {
+                font-size: 0.875rem;
+            }
+            
+            /* 按钮优化 */
+            button, input[type="submit"] {
+                min-height: 44px; /* 触摸友好的按钮高度 */
+            }
+            
+            /* 输入框优化 */
+            input, textarea, select {
+                font-size: 16px; /* 防止iOS自动缩放 */
+                padding: 0.75rem;
+            }
+            
+            /* 文件上传按钮优化 */
+            input[type="file"] {
+                padding: 0.5rem;
+            }
+            
+            /* 总计区域优化 */
+            .total-section {
+                padding: 1rem;
+                font-size: 1.125rem;
+            }
+            
+            /* 商品列表优化 */
+            .item-list {
+                font-size: 0.8125rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="orderForm()" x-cloak class="min-h-screen pb-24 sm:pb-20">
+        <!-- Header -->
+        <div class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-2xl mx-auto px-4 py-3 sm:py-4">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">团购下单</h1>
+                    <a href="/query-order" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">查询订单</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <!-- Loading State -->
+            <div x-show="loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">加载套餐中...</p>
+            </div>
+
+            <!-- Error State -->
+            <div x-show="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p class="text-red-800" x-text="error"></p>
+            </div>
+
+            <!-- Order Form -->
+            <form x-show="!loading && !error" @submit.prevent="submitOrder" class="space-y-6">
+                <!-- Packages Section -->
+                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg sm:text-xl font-semibold">选择套餐</h2>
+                        <span class="text-sm text-gray-500" x-show="filteredPackages.length !== packages.length">
+                            显示 <span x-text="filteredPackages.length"></span> / <span x-text="packages.length"></span>
+                        </span>
+                    </div>
+                    
+                    <!-- Filter Section -->
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg space-y-3">
+                        <!-- Search by Name -->
+                        <div>
+                            <input type="text" 
+                                   x-model="filters.search"
+                                   placeholder="搜索套餐名称..."
+                                   class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <!-- Filter by Region -->
+                        <div>
+                            <select x-model="filters.region" 
+                                    class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">全部大区</option>
+                                <option value="中区">中区</option>
+                                <option value="西区">西区</option>
+                                <option value="北岸">北岸</option>
+                                <option value="东区">东区</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Filter by Price Range -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">最低价格</label>
+                                <input type="number" 
+                                       x-model.number="filters.minPrice"
+                                       placeholder="最低价"
+                                       min="0"
+                                       step="0.01"
+                                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">最高价格</label>
+                                <input type="number" 
+                                       x-model.number="filters.maxPrice"
+                                       placeholder="最高价"
+                                       min="0"
+                                       step="0.01"
+                                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <!-- Clear Filters Button -->
+                        <button type="button" 
+                                @click="clearFilters()"
+                                x-show="hasActiveFilters"
+                                class="w-full text-sm text-blue-600 hover:text-blue-800 py-1">
+                            清除筛选
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4" x-show="filteredPackages.length > 0">
+                        <template x-for="pkg in filteredPackages" :key="pkg.id">
+                            <div class="border rounded-lg p-3 sm:p-4 hover:border-blue-500 transition-colors package-card">
+                                <div class="flex-1 min-w-0">
+                                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 gap-2">
+                                            <div class="flex-1 min-w-0">
+                                                <h3 class="font-semibold text-gray-900 text-base sm:text-lg break-words" x-text="pkg.name"></h3>
+                                                <p class="text-xs sm:text-sm text-gray-600 mt-1 break-words" x-text="pkg.description || ''"></p>
+                                            </div>
+                                            <div class="text-left sm:text-right flex-shrink-0 price-section">
+                                                <template x-if="pkg.originalPrice">
+                                                    <div>
+                                                        <p class="text-xs sm:text-sm text-gray-400 line-through" x-text="'原价: $' + parseFloat(pkg.originalPrice).toFixed(2)"></p>
+                                                        <p class="text-lg sm:text-xl font-bold text-red-600" x-text="'团购价: $' + parseFloat(pkg.price).toFixed(2)"></p>
+                                                        <p class="text-xs text-green-600" x-text="'节省: $' + (parseFloat(pkg.originalPrice) - parseFloat(pkg.price)).toFixed(2)"></p>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!pkg.originalPrice">
+                                                    <p class="text-lg sm:text-xl font-bold text-blue-600" x-text="'$' + parseFloat(pkg.price).toFixed(2)"></p>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3 item-list">
+                                            <p class="text-xs text-gray-500 mb-2 font-medium">包含商品：</p>
+                                            <div class="space-y-2">
+                                                <template x-for="item in pkg.items" :key="item.shopifyProductId + '-' + item.shopifyVariantId">
+                                                    <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                        <!-- 商品图片 -->
+                                                        <div class="flex-shrink-0" x-show="item.imageUrl">
+                                                            <img :src="item.imageUrl" :alt="item.title" 
+                                                                 class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border border-gray-300">
+                                                        </div>
+                                                        <div class="flex-shrink-0" x-show="!item.imageUrl">
+                                                            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                                                                <span class="text-xs text-gray-400">无图</span>
+                                                            </div>
+                                                        </div>
+                                                        <!-- 商品信息 -->
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs sm:text-sm font-medium text-gray-900 break-words" x-text="item.title"></p>
+                                                            <p class="text-xs text-gray-500 mt-0.5" x-text="'数量: ×' + item.quantity"></p>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-start sm:justify-between">
+                                            <div class="flex items-center space-x-2">
+                                                <button type="button" @click="decreaseQuantity(pkg.id)" 
+                                                        class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-300 active:bg-gray-400 touch-manipulation"
+                                                        :disabled="getQuantity(pkg.id) === 0">
+                                                    <span class="text-lg sm:text-base">-</span>
+                                                </button>
+                                                <input type="number" 
+                                                       :value="getQuantity(pkg.id)"
+                                                       @input="updateQuantity(pkg.id, $event.target.value)"
+                                                       min="0"
+                                                       class="w-16 sm:w-16 text-center border rounded px-2 py-1.5 sm:py-1 text-base"
+                                                       readonly>
+                                                <button type="button" @click="increaseQuantity(pkg.id)" 
+                                                        class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 active:bg-blue-800 touch-manipulation">
+                                                    <span class="text-lg sm:text-base">+</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="filteredPackages.length === 0 && packages.length > 0" class="text-center text-gray-500 py-8">
+                        <p class="mb-2">没有找到符合条件的套餐</p>
+                        <button type="button" @click="clearFilters()" class="text-blue-600 hover:text-blue-800 text-sm">
+                            清除筛选条件
+                        </button>
+                    </div>
+                    <div x-show="packages.length === 0 && !loading" class="text-center text-gray-500 py-8">
+                        暂无可用套餐
+                    </div>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">客户信息</h2>
+                    <div class="space-y-3 sm:space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
+                            <input type="text" x-model="formData.customerName" required
+                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">手机号 *</label>
+                            <input type="tel" x-model="formData.phone" required
+                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">收货地址 *</label>
+                            <textarea x-model="formData.address" required rows="3"
+                                      class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">期望配送时间 *</label>
+                            <!-- 显示选中套餐的送货日期选项 -->
+                            <template x-if="getSelectedPackageDeliveryDates().length > 0">
+                                <select x-model="formData.deliveryTime" required
+                                        class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
+                                    <option value="">请选择配送时间</option>
+                                    <template x-for="date in getSelectedPackageDeliveryDates()" :key="date">
+                                        <option :value="date" x-text="date"></option>
+                                    </template>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">请从套餐设置的配送时间中选择</p>
+                            </template>
+                            <!-- 如果没有选中的套餐或套餐没有设置送货日期，显示提示 -->
+                            <template x-if="getSelectedPackageDeliveryDates().length === 0">
+                                <div class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border border-yellow-300 bg-yellow-50 rounded-lg text-sm text-yellow-800">
+                                    <p>请先选择套餐，配送时间将根据所选套餐自动显示</p>
+                                </div>
+                            </template>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">备注（可选）</label>
+                            <textarea x-model="formData.optionalNote" rows="2"
+                                      class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Info -->
+                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">付款信息</h2>
+                    
+                    <!-- 支付方式选择 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择支付方式 *</label>
+                        <div class="space-y-3">
+                            <!-- 立即转账 -->
+                            <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors"
+                                   :class="formData.paymentMethod === 'transfer' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                                <input type="radio" 
+                                       x-model="formData.paymentMethod" 
+                                       value="transfer"
+                                       @change="onPaymentMethodChange()"
+                                       class="mt-1 mr-3 text-blue-600 focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">立即转账</div>
+                                    <div class="text-xs text-gray-600 mt-1">请转账到指定银行账号，完成后上传付款截图</div>
+                                    <div class="text-xs text-gray-500 mt-1 break-all">银行账号：XX-XXXX-XXXXXX-XX</div>
+                                </div>
+                            </label>
+                            
+                            <!-- 送货到户付款 -->
+                            <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors"
+                                   :class="formData.paymentMethod === 'cash_on_delivery' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                                <input type="radio" 
+                                       x-model="formData.paymentMethod" 
+                                       value="cash_on_delivery"
+                                       @change="onPaymentMethodChange()"
+                                       class="mt-1 mr-3 text-blue-600 focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">送货到户时付款</div>
+                                    <div class="text-xs text-gray-600 mt-1">配送员送货时现场收款，无需提前转账</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 付款截图（仅立即转账时显示） -->
+                    <div x-show="formData.paymentMethod === 'transfer'">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">付款截图 *</label>
+                        <input type="file" @change="handleFileSelect" accept="image/*" 
+                               :required="formData.paymentMethod === 'transfer'"
+                               class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <p class="mt-1 text-xs text-gray-500">支持 JPG、PNG、GIF 格式，最大 5MB</p>
+                        <div x-show="formData.paymentScreenshot" class="mt-2">
+                            <img :src="previewImage" alt="预览" class="max-w-full h-32 sm:h-40 object-contain border rounded">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 total-section">
+                    <div class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                            <span class="text-base sm:text-lg font-semibold">总计：</span>
+                            <div class="text-left sm:text-right">
+                                <template x-if="originalTotal > 0">
+                                    <div>
+                                        <p class="text-xs sm:text-sm text-gray-400 line-through" x-text="'原价: $' + originalTotal.toFixed(2)"></p>
+                                        <p class="text-xl sm:text-2xl font-bold text-red-600" x-text="'团购价: $' + total.toFixed(2)"></p>
+                                        <p class="text-xs sm:text-sm text-green-600" x-text="'节省: $' + (originalTotal - total).toFixed(2)"></p>
+                                    </div>
+                                </template>
+                                <template x-if="originalTotal === 0">
+                                    <span class="text-xl sm:text-2xl font-bold text-blue-600" x-text="'$' + total.toFixed(2)"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        :disabled="submitting || total === 0"
+                        class="w-full bg-blue-600 text-white py-4 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation shadow-lg">
+                    <span x-show="!submitting">提交订单</span>
+                    <span x-show="submitting">提交中...</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function orderForm() {
+            return {
+                loading: true,
+                error: null,
+                packages: [],
+                selectedPackages: {},
+                filters: {
+                    search: '',
+                    region: '',
+                    minPrice: null,
+                    maxPrice: null,
+                },
+                formData: {
+                    customerName: '',
+                    phone: '',
+                    address: '',
+                    deliveryTime: '',
+                    optionalNote: '',
+                    paymentMethod: 'transfer', // 默认选择立即转账
+                    paymentScreenshot: null,
+                },
+                previewImage: null,
+                submitting: false,
+
+                async init() {
+                    try {
+                        const response = await fetch('/api/packages');
+                        const data = await response.json();
+                        if (data.error) {
+                            this.error = data.error;
+                        } else {
+                            this.packages = data.packages || [];
+                        }
+                    } catch (err) {
+                        this.error = '加载套餐失败，请刷新重试';
+                        console.error(err);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                get filteredPackages() {
+                    let filtered = [...this.packages];
+                    
+                    // 按名称搜索
+                    if (this.filters.search && this.filters.search.trim()) {
+                        const searchTerm = this.filters.search.trim().toLowerCase();
+                        filtered = filtered.filter(pkg => 
+                            pkg.name.toLowerCase().includes(searchTerm) ||
+                            (pkg.description && pkg.description.toLowerCase().includes(searchTerm))
+                        );
+                    }
+                    
+                    // 按大区筛选
+                    if (this.filters.region) {
+                        filtered = filtered.filter(pkg => pkg.region === this.filters.region);
+                    }
+                    
+                    // 按价格范围筛选
+                    if (this.filters.minPrice !== null && this.filters.minPrice !== '') {
+                        filtered = filtered.filter(pkg => parseFloat(pkg.price) >= this.filters.minPrice);
+                    }
+                    if (this.filters.maxPrice !== null && this.filters.maxPrice !== '') {
+                        filtered = filtered.filter(pkg => parseFloat(pkg.price) <= this.filters.maxPrice);
+                    }
+                    
+                    return filtered;
+                },
+
+                get hasActiveFilters() {
+                    return !!(this.filters.search || 
+                             this.filters.region || 
+                             (this.filters.minPrice !== null && this.filters.minPrice !== '') ||
+                             (this.filters.maxPrice !== null && this.filters.maxPrice !== ''));
+                },
+
+                clearFilters() {
+                    this.filters = {
+                        search: '',
+                        region: '',
+                        minPrice: null,
+                        maxPrice: null,
+                    };
+                },
+
+                getQuantity(packageId) {
+                    return this.selectedPackages[packageId] || 0;
+                },
+
+                increaseQuantity(packageId) {
+                    if (!this.selectedPackages[packageId]) {
+                        this.selectedPackages[packageId] = 0;
+                    }
+                    this.selectedPackages[packageId]++;
+                    // 当选择套餐后，清空配送时间，让用户重新选择
+                    this.formData.deliveryTime = '';
+                },
+
+                decreaseQuantity(packageId) {
+                    if (this.selectedPackages[packageId] > 0) {
+                        this.selectedPackages[packageId]--;
+                        // 如果数量变为0，检查是否还有其他选中的套餐，如果没有则清空配送时间
+                        if (this.selectedPackages[packageId] === 0) {
+                            const hasSelectedPackages = Object.values(this.selectedPackages).some(qty => qty > 0);
+                            if (!hasSelectedPackages) {
+                                this.formData.deliveryTime = '';
+                            } else {
+                                // 重新验证配送时间是否仍然有效
+                                const allowedDates = this.getSelectedPackageDeliveryDates();
+                                if (allowedDates.length > 0 && !allowedDates.includes(this.formData.deliveryTime)) {
+                                    this.formData.deliveryTime = '';
+                                }
+                            }
+                        }
+                    }
+                },
+
+                updateQuantity(packageId, value) {
+                    const num = parseInt(value) || 0;
+                    this.selectedPackages[packageId] = Math.max(0, num);
+                },
+
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        // 检查文件大小（5MB）
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('文件大小不能超过 5MB');
+                            event.target.value = '';
+                            return;
+                        }
+                        this.formData.paymentScreenshot = file;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.previewImage = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        this.formData.paymentScreenshot = null;
+                        this.previewImage = null;
+                    }
+                },
+
+                onPaymentMethodChange() {
+                    // 如果切换到"送货到户付款"，清空截图
+                    if (this.formData.paymentMethod === 'cash_on_delivery') {
+                        this.formData.paymentScreenshot = null;
+                        this.previewImage = null;
+                        // 清空文件输入框
+                        const fileInput = document.querySelector('input[type="file"]');
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
+                    }
+                },
+
+                get total() {
+                    let total = 0;
+                    for (const pkg of this.packages) {
+                        const quantity = this.selectedPackages[pkg.id] || 0;
+                        total += parseFloat(pkg.price) * quantity;
+                    }
+                    return total;
+                },
+
+                get originalTotal() {
+                    let total = 0;
+                    for (const pkg of this.packages) {
+                        const quantity = this.selectedPackages[pkg.id] || 0;
+                        if (pkg.originalPrice) {
+                            total += parseFloat(pkg.originalPrice) * quantity;
+                        }
+                    }
+                    return total;
+                },
+
+                getSelectedPackageDeliveryDates() {
+                    // 收集所有选中套餐的送货日期选项（去重并排序）
+                    const dateSet = new Set();
+                    for (const pkg of this.packages) {
+                        const quantity = this.selectedPackages[pkg.id] || 0;
+                        if (quantity > 0 && pkg.deliveryDates && Array.isArray(pkg.deliveryDates)) {
+                            pkg.deliveryDates.forEach(date => {
+                                if (date && date.trim()) {
+                                    dateSet.add(date.trim());
+                                }
+                            });
+                        }
+                    }
+                    return Array.from(dateSet).sort();
+                },
+
+                getPackageImages(pkg) {
+                    // 如果套餐有设置图片，返回空数组（前端会显示套餐图片）
+                    if (pkg.imageUrl) {
+                        return [];
+                    }
+                    // 否则收集所有商品的图片
+                    const images = [];
+                    if (pkg.items && Array.isArray(pkg.items)) {
+                        pkg.items.forEach(item => {
+                            if (item.imageUrl && !images.includes(item.imageUrl)) {
+                                images.push(item.imageUrl);
+                            }
+                        });
+                    }
+                    return images;
+                },
+
+                async submitOrder() {
+                    // 验证
+                    if (this.total === 0) {
+                        alert('请至少选择一个套餐');
+                        return;
+                    }
+
+                    if (!this.formData.customerName || !this.formData.phone || !this.formData.address || !this.formData.deliveryTime) {
+                        alert('请填写所有必填字段');
+                        return;
+                    }
+
+                    // 验证配送时间是否在允许的选项中
+                    const allowedDates = this.getSelectedPackageDeliveryDates();
+                    if (allowedDates.length > 0) {
+                        if (!allowedDates.includes(this.formData.deliveryTime)) {
+                            alert('请从套餐设置的配送时间中选择');
+                            return;
+                        }
+                    } else {
+                        alert('请先选择套餐');
+                        return;
+                    }
+
+                    // 验证支付方式
+                    if (!this.formData.paymentMethod) {
+                        alert('请选择支付方式');
+                        return;
+                    }
+
+                    // 如果选择立即转账，必须上传截图
+                    if (this.formData.paymentMethod === 'transfer' && !this.formData.paymentScreenshot) {
+                        alert('请上传付款截图');
+                        return;
+                    }
+
+                    // 构建订单数据
+                    const items = [];
+                    let selectedPackageId = null;
+                    for (const pkg of this.packages) {
+                        const quantity = this.selectedPackages[pkg.id] || 0;
+                        if (quantity > 0) {
+                            // 记录第一个选中的套餐ID（如果只选了一个套餐）
+                            if (!selectedPackageId && Object.keys(this.selectedPackages).filter(k => this.selectedPackages[k] > 0).length === 1) {
+                                selectedPackageId = pkg.id;
+                            }
+                            // 将套餐的所有商品添加到订单中
+                            // 计算每个商品在套餐中的团购价（套餐总价 / 套餐商品总数）
+                            const totalPackagePrice = parseFloat(pkg.price);
+                            const totalItemsInPackage = pkg.items.reduce((sum, item) => sum + item.quantity, 0);
+                            const pricePerItem = totalItemsInPackage > 0 ? totalPackagePrice / totalItemsInPackage : 0;
+                            
+                            for (const item of pkg.items) {
+                                items.push({
+                                    title: `${pkg.name} - ${item.title}`,
+                                    price: pricePerItem.toFixed(2), // 使用团购价，而不是原价
+                                    quantity: item.quantity * quantity, // 套餐数量 × 商品数量
+                                    shopifyProductId: item.shopifyProductId, // 保存商品ID
+                                    shopifyVariantId: item.shopifyVariantId, // 保存变体ID
+                                });
+                            }
+                        }
+                    }
+
+                    this.submitting = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('customerName', this.formData.customerName);
+                        formData.append('phone', this.formData.phone);
+                        formData.append('address', this.formData.address);
+                        formData.append('deliveryTime', this.formData.deliveryTime);
+                        formData.append('optionalNote', this.formData.optionalNote || '');
+                        formData.append('paymentMethod', this.formData.paymentMethod);
+                        formData.append('items', JSON.stringify(items));
+                        if (selectedPackageId) {
+                            formData.append('packageId', selectedPackageId);
+                        }
+                        // 仅立即转账时需要上传截图
+                        if (this.formData.paymentMethod === 'transfer' && this.formData.paymentScreenshot) {
+                            formData.append('payment_screenshot', this.formData.paymentScreenshot);
+                        }
+
+                        const response = await fetch('/api/orders', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && (data.success || data.orderId)) {
+                            window.location.href = `/success?orderId=${data.orderId || ''}`;
+                        } else {
+                            // 显示错误信息，特别是文件格式错误
+                            alert(data.error || '提交失败，请重试');
+                            this.submitting = false;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('提交失败，请检查网络连接');
+                        this.submitting = false;
+                    }
+                },
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ProductNameMapping {
+  id              String   @id @default(uuid())
+  shopifyProductId String  @unique // Shopify 商品ID
+  shopifyVariantId String? // Shopify 变体ID（可选）
+  englishName     String   // Shopify 英文名称
+  chineseName     String   // 中文名称
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([shopifyProductId])
+}
+
+model Package {
+  id          String   @id @default(uuid())
+  name        String   // 套餐名称
+  description String? // 套餐描述
+  originalPrice String? // 原价（用于显示优惠）
+  price       String   // 团购价
+  itemsJson   String   // JSON string of items array (商品列表，包含shopifyProductId和shopifyVariantId)
+  deliveryDatesJson String? // JSON string of delivery dates array (可选送货日期列表)
+  region      String?  // 大区：中区、西区、北岸、东区
+  imageUrl    String? // 套餐图片URL
+  isActive    Boolean  @default(true) // 是否启用
+  sortOrder   Int      @default(0) // 排序顺序
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([region])
+}
+
+model Order {
+  id                    String   @id @default(uuid())
+  customerName          String
+  phone                 String
+  address               String
+  deliveryTime          String
+  itemsJson             String   // JSON string of items array (套餐信息)
+  packageId             String?  // 关联的套餐ID（可选，用于历史记录）
+  region                String?  // 大区：中区、西区、北岸、东区（从套餐继承或手动设置）
+  paymentMethod         String   @default("transfer") // 支付方式: "transfer" 或 "cash_on_delivery"
+  paymentScreenshotPath String?
+  shopifyOrderId        String?
+  internalStatus        String   @default("new")
+  optionalNote          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([internalStatus])
+  @@index([createdAt])
+  @@index([phone])
+  @@index([packageId])
+  @@index([region])
+  @@index([deliveryTime])
+}
+

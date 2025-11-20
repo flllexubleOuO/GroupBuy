@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>套餐管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="packageManager()" x-cloak>
+        <!-- Header -->
+        <div class="bg-white shadow-sm mb-6">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/admin/orders" class="text-blue-600 hover:text-blue-900">订单管理</a>
+                    <a href="/admin/product-mappings" class="text-blue-600 hover:text-blue-900">商品翻译</a>
+                    <h1 class="text-2xl font-bold text-gray-900">套餐管理</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button @click="openCreateModal()" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        创建套餐
+                    </button>
+                    <form method="POST" action="/admin/logout" class="inline">
+                        <button type="submit" class="text-gray-600 hover:text-gray-900">退出登录</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div x-show="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- Packages Grid -->
+        <div x-show="!loading" class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="pkg in packages" :key="pkg.id">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden" 
+                         :class="!pkg.isActive && 'opacity-60'">
+                        <!-- Package Image -->
+                        <div class="h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <template x-if="pkg.imageUrl">
+                                <img :src="pkg.imageUrl" :alt="pkg.name" class="w-full h-full object-cover">
+                            </template>
+                            <template x-if="!pkg.imageUrl && getPackageImages(pkg).length > 0">
+                                <div class="flex flex-wrap gap-1 justify-center items-center p-2">
+                                    <template x-for="(imgUrl, index) in getPackageImages(pkg).slice(0, 4)" :key="index">
+                                        <img :src="imgUrl" :alt="'商品' + (index + 1)" 
+                                             class="w-20 h-20 object-cover rounded border border-gray-300"
+                                             :class="getPackageImages(pkg).length > 1 ? 'w-16 h-16' : 'w-32 h-32'">
+                                    </template>
+                                    <div x-show="getPackageImages(pkg).length > 4" 
+                                         class="w-16 h-16 bg-gray-300 rounded flex items-center justify-center text-xs text-gray-600 border border-gray-300">
+                                        +<span x-text="getPackageImages(pkg).length - 4"></span>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!pkg.imageUrl && getPackageImages(pkg).length === 0">
+                                <span class="text-gray-400">暂无图片</span>
+                            </template>
+                        </div>
+                        
+                        <!-- Package Info -->
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="text-lg font-semibold text-gray-900" x-text="pkg.name"></h3>
+                                <div class="flex items-center space-x-2">
+                                    <span x-show="pkg.region" 
+                                          class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                                          x-text="pkg.region"></span>
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full"
+                                          :class="pkg.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                                          x-text="pkg.isActive ? '启用' : '禁用'"></span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-600 mb-2" x-text="pkg.description || '暂无描述'"></p>
+                            
+                            <div class="mb-3">
+                                <span class="text-2xl font-bold text-blue-600" x-text="'$' + pkg.price"></span>
+                            </div>
+                            
+                            <!-- Items List -->
+                            <div class="mb-3 border-t pt-2">
+                                <p class="text-xs font-medium text-gray-500 mb-1">包含商品：</p>
+                                <ul class="text-xs text-gray-600 space-y-1">
+                                    <template x-for="item in pkg.items" :key="(item.shopifyProductId || item.productId) + '-' + (item.shopifyVariantId || item.variantId)">
+                                        <li>
+                                            <span x-text="item.title + ' × ' + item.quantity"></span>
+                                            <span x-show="item.originalTitle && item.originalTitle !== item.title" 
+                                                  class="text-gray-400 ml-1" 
+                                                  x-text="'(' + item.originalTitle + ')'"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="flex space-x-2 mt-4">
+                                <button @click="openEditModal(pkg)" 
+                                        class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700">
+                                    编辑
+                                </button>
+                                <button @click="toggleActive(pkg)" 
+                                        class="flex-1 px-3 py-2 rounded text-sm border"
+                                        :class="pkg.isActive ? 'border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-green-300 text-green-700 hover:bg-green-50'"
+                                        x-text="pkg.isActive ? '禁用' : '启用'">
+                                </button>
+                                <button @click="confirmDelete(pkg)" 
+                                        class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Empty State -->
+                <template x-if="!loading && packages.length === 0">
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-gray-500">暂无套餐，点击"创建套餐"开始添加</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Create/Edit Modal -->
+        <div x-show="showModal" 
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+             @click.self="closeModal()">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold" x-text="editingPackage ? '编辑套餐' : '创建套餐'"></h2>
+                        <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">×</button>
+                    </div>
+                    
+                    <form @submit.prevent="savePackage()" class="space-y-4">
+                        <!-- Name -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">套餐名称 *</label>
+                            <input type="text" x-model="form.name" required
+                                   class="w-full px-4 py-2 border rounded-lg">
+                        </div>
+                        
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">套餐描述</label>
+                            <textarea x-model="form.description" rows="3"
+                                      class="w-full px-4 py-2 border rounded-lg"></textarea>
+                        </div>
+                        
+                        <!-- Prices -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">原价</label>
+                                <input type="number" x-model.number="form.originalPrice" step="0.01" placeholder="例如: 129.99"
+                                       class="w-full px-4 py-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">团购价 *</label>
+                                <input type="number" x-model.number="form.price" required step="0.01" placeholder="例如: 99.99"
+                                       class="w-full px-4 py-2 border rounded-lg">
+                            </div>
+                        </div>
+                        
+                        <!-- Region -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">大区 *</label>
+                            <select x-model="form.region" required
+                                    class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">请选择大区</option>
+                                <option value="中区">中区</option>
+                                <option value="西区">西区</option>
+                                <option value="北岸">北岸</option>
+                                <option value="东区">东区</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Delivery Dates -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">可选送货日期（可选）</label>
+                            <p class="text-xs text-gray-500 mb-2">如果设置，客户只能从这些日期中选择。留空则允许客户自由输入。</p>
+                            <div class="space-y-2 mb-2">
+                                <template x-for="(dateItem, index) in form.deliveryDates" :key="index">
+                                    <div class="flex gap-2 items-center">
+                                        <input type="date" 
+                                               x-model="dateItem.date" 
+                                               class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                                        <select x-model="dateItem.timeSlot"
+                                                class="px-3 py-2 border rounded-lg text-sm">
+                                            <option value="">全天</option>
+                                            <option value="上午">上午</option>
+                                            <option value="下午">下午</option>
+                                        </select>
+                                        <button type="button" @click="removeDeliveryDate(index)"
+                                                class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm whitespace-nowrap">
+                                            删除
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                            <button type="button" @click="addDeliveryDate()"
+                                    class="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 text-sm">
+                                + 添加送货日期
+                            </button>
+                        </div>
+                        
+                        <!-- Image URL -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">套餐图片URL</label>
+                            <input type="url" x-model="form.imageUrl" placeholder="https://..."
+                                   class="w-full px-4 py-2 border rounded-lg">
+                        </div>
+                        
+                        <!-- Sort Order -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">排序顺序</label>
+                            <input type="number" x-model.number="form.sortOrder" value="0"
+                                   class="w-full px-4 py-2 border rounded-lg">
+                        </div>
+                        
+                        <!-- Active Status -->
+                        <div class="flex items-center">
+                            <input type="checkbox" x-model="form.isActive" id="isActive"
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded">
+                            <label for="isActive" class="ml-2 text-sm text-gray-700">启用套餐</label>
+                        </div>
+                        
+                        <!-- Items -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">套餐商品 *</label>
+                            
+                            <!-- Add Item -->
+                            <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                                    <select x-model="newItem.productId" @change="onProductChange()"
+                                            class="px-3 py-2 border rounded-lg text-sm">
+                                        <option value="">选择商品</option>
+                                        <template x-for="product in products" :key="product.id">
+                                            <option :value="product.id" 
+                                                    x-text="product.chineseTitle + (product.chineseTitle !== product.title ? ' (' + product.title + ')' : '')"></option>
+                                        </template>
+                                    </select>
+                                    <select x-model="newItem.variantId" 
+                                            class="px-3 py-2 border rounded-lg text-sm">
+                                        <option value="">选择规格</option>
+                                        <template x-for="variant in selectedVariants" :key="variant.id">
+                                            <option :value="variant.id" 
+                                                    x-text="variant.chineseTitle + ' - $' + variant.price"></option>
+                                        </template>
+                                    </select>
+                                    <input type="number" x-model.number="newItem.quantity" 
+                                           placeholder="数量" min="1" value="1"
+                                           class="px-3 py-2 border rounded-lg text-sm">
+                                </div>
+                                <button type="button" @click="addItem()" 
+                                        class="w-full bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-300">
+                                    添加商品
+                                </button>
+                            </div>
+                            
+                            <!-- Items List -->
+                            <div class="space-y-2">
+                                <template x-for="(item, index) in form.items" :key="index">
+                                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="text-sm font-medium" x-text="item.title + ' × ' + item.quantity"></span>
+                                            <span x-show="item.originalTitle && item.originalTitle !== item.title" 
+                                                  class="text-xs text-gray-500 ml-2" 
+                                                  x-text="'(' + item.originalTitle + ')'"></span>
+                                        </div>
+                                        <button type="button" @click="removeItem(index)" 
+                                                class="text-red-600 hover:text-red-800 text-sm ml-2 flex-shrink-0">
+                                            删除
+                                        </button>
+                                    </div>
+                                </template>
+                                <template x-if="form.items.length === 0">
+                                    <p class="text-sm text-gray-500 text-center py-2">请至少添加一个商品</p>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" 
+                                    class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                                保存
+                            </button>
+                            <button type="button" @click="closeModal()" 
+                                    class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                                取消
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div x-show="showDeleteModal" 
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <h3 class="text-lg font-bold mb-4">确认删除</h3>
+                <p class="text-gray-600 mb-6" x-text="'确定要删除套餐 "' + (packageToDelete?.name || '') + '" 吗？此操作不可恢复。'"></p>
+                <div class="flex space-x-3">
+                    <button @click="deletePackage()" 
+                            class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        删除
+                    </button>
+                    <button @click="showDeleteModal = false; packageToDelete = null" 
+                            class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function packageManager() {
+            return {
+                loading: true,
+                packages: [],
+                products: [],
+                showModal: false,
+                showDeleteModal: false,
+                editingPackage: null,
+                packageToDelete: null,
+                form: {
+                    name: '',
+                    description: '',
+                    originalPrice: '',
+                    price: '',
+                    region: '',
+                    deliveryDates: [],
+                    imageUrl: '',
+                    isActive: true,
+                    sortOrder: 0,
+                    items: [],
+                },
+                newItem: {
+                    productId: '',
+                    variantId: '',
+                    quantity: 1,
+                },
+                selectedVariants: [],
+
+                async init() {
+                    await Promise.all([this.loadPackages(), this.loadProducts()]);
+                },
+
+                async loadPackages() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/admin/api/packages');
+                        const data = await response.json();
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.packages = data.packages || [];
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('加载套餐列表失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async loadProducts() {
+                    try {
+                        const response = await fetch('/admin/api/products-with-translations');
+                        const data = await response.json();
+                        if (data.error) {
+                            console.error('加载商品列表失败:', data.error);
+                        } else {
+                            this.products = data.products || [];
+                            this.productMappings = new Map(
+                                (data.mappings || []).map(m => [m.shopifyProductId, m.chineseName])
+                            );
+                        }
+                    } catch (err) {
+                        console.error('加载商品列表失败:', err);
+                    }
+                },
+
+                onProductChange() {
+                    const product = this.products.find(p => p.id == this.newItem.productId);
+                    this.selectedVariants = product ? product.variants : [];
+                    this.newItem.variantId = '';
+                },
+
+                addItem() {
+                    if (!this.newItem.productId || !this.newItem.variantId || !this.newItem.quantity) {
+                        alert('请完整填写商品信息');
+                        return;
+                    }
+
+                    const product = this.products.find(p => p.id == this.newItem.productId);
+                    const variant = this.selectedVariants.find(v => v.id == this.newItem.variantId);
+                    
+                    if (!product || !variant) {
+                        alert('商品信息错误');
+                        return;
+                    }
+
+                    const item = {
+                        shopifyProductId: String(product.id),
+                        shopifyVariantId: String(variant.id),
+                        title: variant.chineseTitle || `${product.title} - ${variant.title}`,
+                        originalTitle: `${product.title} - ${variant.title}`, // 保留原始英文名称
+                        price: variant.price,
+                        quantity: this.newItem.quantity,
+                    };
+
+                    this.form.items.push(item);
+                    
+                    // Reset
+                    this.newItem = {
+                        productId: '',
+                        variantId: '',
+                        quantity: 1,
+                    };
+                    this.selectedVariants = [];
+                },
+
+                removeItem(index) {
+                    this.form.items.splice(index, 1);
+                },
+
+                addDeliveryDate() {
+                    this.form.deliveryDates.push({ date: '', timeSlot: '' });
+                },
+
+                removeDeliveryDate(index) {
+                    this.form.deliveryDates.splice(index, 1);
+                },
+
+                openCreateModal() {
+                    this.editingPackage = null;
+                    this.form = {
+                        name: '',
+                        description: '',
+                        originalPrice: '',
+                        price: '',
+                        region: '',
+                        deliveryDates: [],
+                        imageUrl: '',
+                        isActive: true,
+                        sortOrder: 0,
+                        items: [],
+                    };
+                    this.showModal = true;
+                },
+
+                openEditModal(pkg) {
+                    this.editingPackage = pkg;
+                    // 确保 items 中的商品名称使用中文（如果已映射）
+                    const itemsWithChinese = pkg.items.map(item => {
+                        // 如果已经有 title（可能是中文），保留它
+                        // 同时保留 originalTitle 用于显示
+                        return {
+                            ...item,
+                            title: item.title || item.originalTitle || '',
+                            originalTitle: item.originalTitle || item.title || '',
+                        };
+                    });
+                    
+                    // 解析 deliveryDates：将字符串格式 "YYYY-MM-DD 时间段" 转换为对象格式
+                    let deliveryDatesParsed = [];
+                    if (pkg.deliveryDates && Array.isArray(pkg.deliveryDates) && pkg.deliveryDates.length > 0) {
+                        deliveryDatesParsed = pkg.deliveryDates.map((dateStr) => {
+                            // 解析格式：可能是 "YYYY-MM-DD" 或 "YYYY-MM-DD 上午" 或 "YYYY-MM-DD 下午"
+                            const parts = String(dateStr).trim().split(' ');
+                            const date = parts[0] || '';
+                            const timeSlot = parts[1] || '';
+                            return { date, timeSlot };
+                        });
+                    }
+                    
+                    this.form = {
+                        name: pkg.name,
+                        description: pkg.description || '',
+                        originalPrice: pkg.originalPrice || '',
+                        price: pkg.price,
+                        region: pkg.region || '',
+                        deliveryDates: deliveryDatesParsed,
+                        imageUrl: pkg.imageUrl || '',
+                        isActive: pkg.isActive,
+                        sortOrder: pkg.sortOrder,
+                        items: itemsWithChinese,
+                    };
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.editingPackage = null;
+                },
+
+                async savePackage() {
+                    if (this.form.items.length === 0) {
+                        alert('请至少添加一个商品');
+                        return;
+                    }
+
+                    // 将日期对象转换为字符串格式
+                    const deliveryDatesFormatted = this.form.deliveryDates
+                        .filter(item => item.date && item.date.trim())
+                        .map(item => {
+                            const dateStr = item.date;
+                            const timeSlot = item.timeSlot ? ` ${item.timeSlot}` : '';
+                            return dateStr + timeSlot;
+                        });
+
+                    try {
+                        const url = this.editingPackage 
+                            ? `/admin/api/packages/${this.editingPackage.id}`
+                            : '/admin/api/packages';
+                        const method = this.editingPackage ? 'PATCH' : 'POST';
+
+                        // 准备发送的数据，将 deliveryDates 转换为字符串数组
+                        const formData = {
+                            ...this.form,
+                            deliveryDates: deliveryDatesFormatted,
+                        };
+
+                        const response = await fetch(url, {
+                            method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData),
+                        });
+
+                        const data = await response.json();
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.closeModal();
+                            await this.loadPackages();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('保存失败');
+                    }
+                },
+
+                getPackageImages(pkg) {
+                    // 如果套餐有设置图片，返回空数组（前端会显示套餐图片）
+                    if (pkg.imageUrl) {
+                        return [];
+                    }
+                    // 否则收集所有商品的图片
+                    const images = [];
+                    if (pkg.items && Array.isArray(pkg.items)) {
+                        pkg.items.forEach(item => {
+                            if (item.imageUrl && !images.includes(item.imageUrl)) {
+                                images.push(item.imageUrl);
+                            }
+                        });
+                    }
+                    return images;
+                },
+
+                async toggleActive(pkg) {
+                    try {
+                        const response = await fetch(`/admin/api/packages/${pkg.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ isActive: !pkg.isActive }),
+                        });
+
+                        const data = await response.json();
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            await this.loadPackages();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('操作失败');
+                    }
+                },
+
+                confirmDelete(pkg) {
+                    this.packageToDelete = pkg;
+                    this.showDeleteModal = true;
+                },
+
+                async deletePackage() {
+                    if (!this.packageToDelete) return;
+
+                    try {
+                        const response = await fetch(`/admin/api/packages/${this.packageToDelete.id}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.showDeleteModal = false;
+                            this.packageToDelete = null;
+                            await this.loadPackages();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('删除失败');
+                    }
+                },
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品翻译管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="mappingManager()" x-cloak>
+        <!-- Header -->
+        <div class="bg-white shadow-sm mb-6">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/admin/packages" class="text-blue-600 hover:text-blue-900">← 套餐管理</a>
+                    <h1 class="text-2xl font-bold text-gray-900">商品翻译管理</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button @click="loadProducts()" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                        从 Shopify 同步商品
+                    </button>
+                    <button @click="saveAll()" 
+                            :disabled="saving"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                        <span x-show="!saving">保存所有翻译</span>
+                        <span x-show="saving">保存中...</span>
+                    </button>
+                    <form method="POST" action="/admin/logout" class="inline">
+                        <button type="submit" class="text-gray-600 hover:text-gray-900">退出登录</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div x-show="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- Products List -->
+        <div x-show="!loading" class="max-w-7xl mx-auto px-4 pb-12">
+            <!-- Search/Filter -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <input type="text" 
+                       x-model="searchQuery" 
+                       placeholder="搜索商品名称..."
+                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Products Table -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品ID</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">英文名称</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">中文翻译</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="product in filteredProducts" :key="product.id">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-mono text-gray-500" 
+                                        x-text="product.id.toString().substring(0, 12) + '...'"></td>
+                                    <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-900 break-words max-w-xs" 
+                                        x-text="product.title"></td>
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <input type="text" 
+                                               :value="getChineseName(product.id.toString())"
+                                               @input="updateChineseName(product.id.toString(), $event.target.value)"
+                                               placeholder="输入中文翻译"
+                                               class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500">
+                                    </td>
+                                    <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
+                                        <button @click="saveMapping(product.id.toString())" 
+                                                class="text-blue-600 hover:text-blue-900">
+                                            保存
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <div x-show="filteredProducts.length === 0" class="text-center py-12 text-gray-500">
+                    <template x-if="searchQuery">
+                        <p>没有找到匹配的商品</p>
+                    </template>
+                    <template x-if="!searchQuery">
+                        <p>暂无商品，点击"从 Shopify 同步商品"开始</p>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Pagination or Info -->
+            <div class="mt-4 text-sm text-gray-600 text-center">
+                共 <span x-text="filteredProducts.length"></span> 个商品
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mappingManager() {
+            return {
+                loading: true,
+                saving: false,
+                products: [],
+                mappings: new Map(), // shopifyProductId -> { id, chineseName }
+                searchQuery: '',
+
+                async init() {
+                    await Promise.all([this.loadMappings(), this.loadProducts()]);
+                },
+
+                async loadMappings() {
+                    try {
+                        const response = await fetch('/admin/api/product-mappings');
+                        const data = await response.json();
+                        if (data.error) {
+                            console.error(data.error);
+                        } else {
+                            // 转换为 Map 方便查找
+                            this.mappings = new Map(
+                                (data.mappings || []).map(m => [m.shopifyProductId, m])
+                            );
+                        }
+                    } catch (err) {
+                        console.error('加载映射失败:', err);
+                    }
+                },
+
+                async loadProducts() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/admin/api/products');
+                        const data = await response.json();
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            this.products = data.products || [];
+                            
+                            // 为没有映射的商品创建临时映射记录
+                            for (const product of this.products) {
+                                if (!this.mappings.has(product.id.toString())) {
+                                    // 创建临时映射，等待用户输入
+                                    this.mappings.set(product.id.toString(), {
+                                        shopifyProductId: product.id.toString(),
+                                        chineseName: '',
+                                        englishName: product.title,
+                                    });
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('加载商品失败');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                getChineseName(productId) {
+                    const mapping = this.mappings.get(productId);
+                    return mapping ? mapping.chineseName : '';
+                },
+
+                updateChineseName(productId, chineseName) {
+                    const mapping = this.mappings.get(productId);
+                    if (mapping) {
+                        mapping.chineseName = chineseName;
+                    } else {
+                        // 创建新映射
+                        const product = this.products.find(p => p.id.toString() === productId);
+                        this.mappings.set(productId, {
+                            shopifyProductId: productId,
+                            chineseName: chineseName,
+                            englishName: product ? product.title : '',
+                        });
+                    }
+                },
+
+                async saveMapping(productId) {
+                    const mapping = this.mappings.get(productId);
+                    if (!mapping || !mapping.chineseName.trim()) {
+                        alert('请输入中文翻译');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/admin/api/product-mappings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                shopifyProductId: productId,
+                                englishName: mapping.englishName,
+                                chineseName: mapping.chineseName,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            // 更新映射数据
+                            if (data.mapping) {
+                                this.mappings.set(productId, data.mapping);
+                            }
+                            alert('保存成功');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('保存失败');
+                    }
+                },
+
+                async saveAll() {
+                    // 收集所有有中文翻译的映射
+                    const mappingsToSave = [];
+                    for (const [productId, mapping] of this.mappings.entries()) {
+                        if (mapping.chineseName && mapping.chineseName.trim()) {
+                            mappingsToSave.push({
+                                shopifyProductId: productId,
+                                englishName: mapping.englishName,
+                                chineseName: mapping.chineseName,
+                            });
+                        }
+                    }
+
+                    if (mappingsToSave.length === 0) {
+                        alert('没有需要保存的翻译');
+                        return;
+                    }
+
+                    this.saving = true;
+                    try {
+                        const response = await fetch('/admin/api/product-mappings/batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ mappings: mappingsToSave }),
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert(`成功保存 ${data.count} 个翻译`);
+                            await this.loadMappings(); // 重新加载映射以获取 ID
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('批量保存失败');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+
+                get filteredProducts() {
+                    if (!this.searchQuery) {
+                        return this.products;
+                    }
+                    const query = this.searchQuery.toLowerCase();
+                    return this.products.filter(p => 
+                        p.title.toLowerCase().includes(query) ||
+                        (this.getChineseName(p.id.toString()) || '').toLowerCase().includes(query)
+                    );
+                },
+            };
+        }
+    </script>
+</body>
+</html>
