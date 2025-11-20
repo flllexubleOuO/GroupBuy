@@ -80,6 +80,12 @@ jobs:
               sudo npm install -g pm2
             fi
             
+            # 配置 PM2 开机自启（如果还没有配置）
+            if ! pm2 startup | grep -q "already setup"; then
+              echo "⚙️  配置 PM2 开机自启..."
+              sudo env PATH=\$PATH:/usr/bin pm2 startup systemd -u \$(whoami) --hp \$(eval echo ~\$USER) || echo "PM2 开机自启配置可能需要手动执行"
+            fi
+            
             # 检查 npx (Prisma 需要)
             if ! command -v npx &> /dev/null; then
               echo "⚠️  npx 未安装，请先安装 npm"
@@ -107,15 +113,36 @@ jobs:
           
           echo "🎉 部署成功！"
 
-      - name: Deployment Status
+      - name: Verify Service Status
         if: success()
         env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
           EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
         run: |
           DEPLOY_PATH="${EC2_DEPLOY_PATH:-/home/ec2-user/tuangou-project}"
+          echo "🔍 验证服务状态..."
+          
+          # 检查 PM2 进程状态
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+            cd ${DEPLOY_PATH}
+            echo "📊 PM2 进程状态:"
+            pm2 status
+            
+            echo ""
+            echo "📝 最近的应用日志:"
+            pm2 logs group-buy-system --lines 10 --nostream || echo "无法获取日志"
+            
+            echo ""
+            echo "🔗 应用信息:"
+            pm2 info group-buy-system || echo "无法获取应用信息"
+          EOF
+          
+          echo ""
           echo "✅ 部署成功完成！"
           echo "服务器地址: ${{ secrets.EC2_HOST }}"
           echo "部署路径: ${DEPLOY_PATH}"
+          echo "应用应该可以通过 http://${{ secrets.EC2_HOST }}:3000 访问"
 
       - name: Deployment Failed
         if: failure()

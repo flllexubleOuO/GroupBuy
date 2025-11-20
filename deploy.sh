@@ -160,12 +160,37 @@ fi
 # echo "🧹 清理开发依赖..."
 # npm prune --production
 
-# 重启 PM2 进程
-echo "🔄 重启应用..."
-pm2 restart group-buy-system || pm2 start ecosystem.config.js --env production
+# 重启或启动 PM2 进程
+echo "🔄 启动/重启应用..."
+if pm2 list | grep -q "group-buy-system"; then
+  echo "应用已在运行，执行重启..."
+  pm2 restart group-buy-system --update-env
+else
+  echo "应用未运行，启动新实例..."
+  pm2 start ecosystem.config.js --env production
+  # 保存 PM2 配置，确保开机自启
+  pm2 save
+fi
+
+# 等待服务启动
+echo "⏳ 等待服务启动..."
+sleep 3
 
 # 显示状态
+echo "📊 PM2 进程状态:"
 pm2 status
+
+# 验证服务是否正常运行
+echo "🔍 验证服务状态..."
+if pm2 list | grep -q "group-buy-system.*online"; then
+  echo "✅ 服务运行正常"
+  # 显示应用信息
+  pm2 info group-buy-system
+else
+  echo "⚠️  服务可能未正常启动，检查日志..."
+  pm2 logs group-buy-system --lines 20 --nostream
+  exit 1
+fi
 
 echo "✅ 部署完成！"
 
