@@ -91,6 +91,11 @@ jobs:
             echo "npm 版本: \$(npm --version)"
             echo "PM2 版本: \$(pm2 --version)"
             
+            # 确保必要的目录存在
+            echo "📁 创建必要的目录..."
+            mkdir -p prisma public/uploads logs
+            chmod -R 755 public/uploads logs
+            
             # 确保 deploy.sh 有执行权限
             chmod +x deploy.sh
             

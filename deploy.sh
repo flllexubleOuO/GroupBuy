@@ -8,6 +8,28 @@ echo "🚀 开始部署..."
 
 # 注意：代码已经通过 rsync 同步，不需要 git pull
 
+# 检查环境变量
+echo "🔍 检查环境变量..."
+if [ ! -f .env ]; then
+  echo "⚠️  .env 文件不存在，创建默认配置..."
+  cat > .env << EOF
+NODE_ENV=production
+PORT=3000
+DATABASE_URL="file:./prisma/prod.db"
+EOF
+  echo "✅ 已创建默认 .env 文件"
+else
+  echo "✅ .env 文件存在"
+  # 确保 DATABASE_URL 存在
+  if ! grep -q "DATABASE_URL" .env; then
+    echo "⚠️  DATABASE_URL 未配置，添加默认值..."
+    echo 'DATABASE_URL="file:./prisma/prod.db"' >> .env
+  fi
+fi
+
+# 加载环境变量
+export $(cat .env | grep -v '^#' | xargs)
+
 # 安装依赖
 echo "📦 安装依赖..."
 npm install --production

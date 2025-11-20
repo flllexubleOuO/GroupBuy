@@ -40,7 +40,35 @@ cd /home/ec2-user/tuangou-project
 nano .env
 ```
 
-添加必要的环境变量（参考项目的 `.env.example` 或配置文档）。
+添加必要的环境变量。**最小配置**（部署脚本会自动创建默认值，但建议手动配置）：
+
+```env
+# 应用配置
+NODE_ENV=production
+PORT=3000
+
+# 数据库配置（SQLite）
+DATABASE_URL="file:./prisma/prod.db"
+
+# Shopify 配置（必需）
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_ADMIN_API_ACCESS_TOKEN=your-access-token
+SHOPIFY_API_VERSION=2024-01
+
+# 管理员账号（请修改默认密码）
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-strong-password
+
+# Session 密钥（生成随机字符串）
+# 生成方法: openssl rand -hex 32
+SESSION_SECRET=your-random-secret-key
+```
+
+**重要提示**：
+- `.env` 文件不会被 rsync 同步（已在 workflow 中排除）
+- 首次部署后，部署脚本会自动创建默认 `.env` 文件（如果不存在）
+- 建议在首次部署前手动创建 `.env` 文件并配置正确的值
+- 数据库文件会保存在 `prisma/prod.db`
 
 ### 1.3 确保部署脚本可执行
 
