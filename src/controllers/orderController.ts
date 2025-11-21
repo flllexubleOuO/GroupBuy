@@ -225,8 +225,8 @@ export const getOrders = async (req: Request, res: Response) => {
     // 解析 itemsJson 并处理图片路径
     const ordersWithItems = await Promise.all(
       orders.map(async (order) => ({
-        ...order,
-        items: JSON.parse(order.itemsJson),
+      ...order,
+      items: JSON.parse(order.itemsJson),
         paymentScreenshotPath: await processOrderImagePath(order.paymentScreenshotPath),
       }))
     );
@@ -405,8 +405,8 @@ export const getOrdersByPhone = async (req: Request, res: Response) => {
     // 解析 itemsJson 并处理图片路径
     const ordersWithItems = await Promise.all(
       orders.map(async (order) => ({
-        ...order,
-        items: JSON.parse(order.itemsJson),
+      ...order,
+      items: JSON.parse(order.itemsJson),
         paymentScreenshotPath: await processOrderImagePath(order.paymentScreenshotPath),
       }))
     );

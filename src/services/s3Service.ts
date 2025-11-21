@@ -3,12 +3,16 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '../config';
 
 // 初始化 S3 客户端
+// 注意：AWS SDK v3 会自动处理区域重定向，但需要确保 region 配置正确
+console.log('🔧 S3 客户端初始化 - 区域:', config.s3.region, '存储桶:', config.s3.bucket);
 const s3Client = new S3Client({
   region: config.s3.region,
   credentials: config.s3.accessKeyId && config.s3.secretAccessKey ? {
     accessKeyId: config.s3.accessKeyId,
     secretAccessKey: config.s3.secretAccessKey,
   } : undefined,
+  // 强制使用路径样式（某些情况下需要）
+  // forcePathStyle: false,
 });
 
 /**
@@ -30,6 +34,8 @@ export async function uploadToS3(
     const ext = fileName.split('.').pop() || '';
     const key = `${config.s3.folderPrefix || 'uploads'}/${timestamp}-${randomStr}.${ext}`;
 
+    console.log('📤 开始上传到 S3 - 区域:', config.s3.region, '存储桶:', config.s3.bucket, '文件:', key);
+
     // 上传到 S3
     const command = new PutObjectCommand({
       Bucket: config.s3.bucket,
@@ -41,6 +47,7 @@ export async function uploadToS3(
     });
 
     await s3Client.send(command);
+    console.log('✅ S3 上传成功:', key);
 
     // 返回 S3 对象键
     return key;

@@ -25,23 +25,23 @@ if (config.s3.enabled) {
   storage = multer.memoryStorage();
 } else {
   // 使用磁盘存储（本地存储）
-  const uploadDir = config.upload.dest;
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+const uploadDir = config.upload.dest;
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
   storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      // 生成唯一文件名：时间戳 + 随机字符串 + 原始扩展名
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.originalname);
-      const name = path.basename(file.originalname, ext);
-      cb(null, `${name}-${uniqueSuffix}${ext}`);
-    },
-  });
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // 生成唯一文件名：时间戳 + 随机字符串 + 原始扩展名
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}-${uniqueSuffix}${ext}`);
+  },
+});
 }
 
 // 文件过滤器：只允许图片

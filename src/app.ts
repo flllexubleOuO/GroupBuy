@@ -39,9 +39,69 @@ app.use(
 app.use(routes);
 
 // 前台下单页面
-app.get('/order', (req: Request, res: Response) => {
+app.get('/order', async (req: Request, res: Response) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
-  res.render('public/order', { baseUrl });
+  const packageId = req.query.packageId as string | undefined;
+  
+  // 默认分享内容
+  let shareData = {
+    title: 'BAIJIAGROCERIES - 优质商品，超值价格',
+    description: 'GOOD PRODUCT! GOOD PRICE! 精选优质商品，超值团购价格。纸巾、手套等生活用品，品质保证，价格优惠！',
+    image: `${baseUrl}/images/share-card.jpg`,
+    url: `${baseUrl}/order`,
+  };
+  
+  // 如果指定了套餐ID，获取套餐信息用于分享
+  if (packageId) {
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const pkg = await prisma.package.findUnique({
+        where: { id: packageId },
+      });
+      
+      if (pkg && pkg.isActive) {
+        // 构建套餐分享内容
+        let description = pkg.description || '精选优质商品组合，超值团购价格';
+        
+        // 如果有原价，添加优惠信息
+        if (pkg.originalPrice) {
+          const originalPrice = parseFloat(pkg.originalPrice);
+          const price = parseFloat(pkg.price);
+          const savings = originalPrice - price;
+          description = `${description} | 原价$${originalPrice.toFixed(2)}，团购价$${price.toFixed(2)}，节省$${savings.toFixed(2)}`;
+        } else {
+          description = `${description} | 团购价$${parseFloat(pkg.price).toFixed(2)}`;
+        }
+        
+        // 如果有大区信息，添加到描述
+        if (pkg.region) {
+          description = `${description} | ${pkg.region}配送`;
+        }
+        
+        shareData = {
+          title: `${pkg.name} - 团购优惠`,
+          description: description,
+          image: pkg.imageUrl || `${baseUrl}/images/share-card.jpg`,
+          url: `${baseUrl}/order?packageId=${packageId}`,
+        };
+      }
+      
+      await prisma.$disconnect();
+    } catch (error) {
+      console.error('Error fetching package for share:', error);
+      // 出错时使用默认分享内容
+    }
+  }
+  
+  res.render('public/order', { 
+    baseUrl,
+    shareTitle: shareData.title,
+    shareDescription: shareData.description,
+    shareImage: shareData.image,
+    shareUrl: shareData.url,
+  });
 });
 
 app.get('/group-buy', (req: Request, res: Response) => {
