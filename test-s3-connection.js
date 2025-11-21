@@ -80,7 +80,52 @@ async function testS3Connection() {
         console.log(`⚠️  存储桶 "${bucket}" 存在但无访问权限`);
         console.log('   提示: 检查 IAM 用户/角色的权限');
       } else {
-        console.log(`❌ 检查存储桶时出错: ${error.message}`);
+        console.log(`⚠️  检查存储桶时出错: ${error.name || error.message}`);
+        console.log(`   错误详情: ${JSON.stringify(error.$metadata || {}, null, 2)}`);
+        console.log('   注意: HeadBucket 权限可能不足，但可能不影响上传');
+      }
+      // 不直接返回，继续测试上传功能
+    }
+    
+    // 测试 3: 测试实际上传功能
+    console.log(`📦 测试 3: 测试上传功能...`);
+    try {
+      const { PutObjectCommand } = require('@aws-sdk/client-s3');
+      const testKey = `uploads/test-${Date.now()}.txt`;
+      const testContent = Buffer.from('This is a test file for S3 upload verification');
+      
+      const putCommand = new PutObjectCommand({
+        Bucket: bucket,
+        Key: testKey,
+        Body: testContent,
+        ContentType: 'text/plain',
+      });
+      
+      await s3Client.send(putCommand);
+      console.log(`✅ 上传测试成功！`);
+      console.log(`   测试文件: ${testKey}`);
+      console.log('');
+      
+      // 清理测试文件
+      try {
+        const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: testKey,
+        });
+        await s3Client.send(deleteCommand);
+        console.log(`✅ 已清理测试文件`);
+      } catch (cleanError) {
+        console.log(`⚠️  无法清理测试文件（不影响功能）: ${cleanError.message}`);
+      }
+      
+    } catch (error) {
+      console.log(`❌ 上传测试失败: ${error.name || error.message}`);
+      if (error.$metadata) {
+        console.log(`   状态码: ${error.$metadata.httpStatusCode}`);
+      }
+      if (error.message.includes('Access Denied') || error.message.includes('Forbidden')) {
+        console.log('   提示: IAM 角色/用户需要 s3:PutObject 权限');
       }
       return;
     }
