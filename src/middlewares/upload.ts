@@ -82,12 +82,16 @@ export const uploadWithS3 = async (req: any, res: any, next: any) => {
         const contentType = req.file.mimetype;
 
         const s3Key = await uploadToS3(fileBuffer, fileName, contentType);
-        const s3Url = getS3PublicUrl(s3Key);
-
+        
         // 将 S3 信息附加到文件对象
         req.file.s3Key = s3Key;
-        req.file.s3Url = s3Url;
-        // 为了兼容性，filename 设置为 S3 key
+        
+        // 如果使用公共访问，生成公共 URL；否则只保存 key，稍后生成预签名 URL
+        if (config.s3.publicAccess) {
+          req.file.s3Url = getS3PublicUrl(s3Key);
+        }
+        
+        // 为了兼容性，filename 设置为 S3 key（用于标识是 S3 文件）
         req.file.filename = s3Key;
       } catch (s3Error: any) {
         console.error('S3 上传失败:', s3Error);

@@ -1,8 +1,35 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { shopifyService } from '../services/shopifyService';
+import { config } from '../config';
+import { getS3PresignedUrl, getS3PublicUrl } from '../services/s3Service';
 
 const prisma = new PrismaClient();
+
+/**
+ * 处理订单中的图片路径：如果是 S3 key，转换为后端代理 URL
+ */
+async function processOrderImagePath(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  
+  // 检查是否是 S3 key（格式：s3://bucket/key）
+  if (path.startsWith('s3://')) {
+    try {
+      // 提取 S3 key
+      const s3Key = path.replace(`s3://${config.s3.bucket}/`, '');
+      
+      // 如果使用后端代理模式（推荐，更安全），返回代理 URL
+      // 这样前端通过后端访问，而不是直接访问 S3
+      return `/api/images/s3/${s3Key}`;
+    } catch (error) {
+      console.error('处理 S3 图片路径失败:', error);
+      return null;
+    }
+  }
+  
+  // 本地路径，直接返回
+  return path;
+}
 
 interface OrderItem {
   title: string;
@@ -72,12 +99,17 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
     }
 
     // 保存付款截图路径
-    // 如果启用了 S3，使用 S3 URL；否则使用本地路径
+    // 如果启用了 S3，保存 S3 key（如果是公共访问则保存 URL）；否则使用本地路径
     let screenshotPath: string | null = null;
     if (req.file) {
-      if (req.file.s3Url) {
-        // 使用 S3 URL
-        screenshotPath = req.file.s3Url;
+      if (config.s3.enabled && req.file.s3Key) {
+        // 使用 S3：如果是公共访问保存 URL，否则保存 key（稍后生成预签名 URL）
+        if (config.s3.publicAccess && req.file.s3Url) {
+          screenshotPath = req.file.s3Url;
+        } else {
+          // 私有存储：保存 S3 key，格式为 "s3://bucket/key" 以便识别
+          screenshotPath = `s3://${config.s3.bucket}/${req.file.s3Key}`;
+        }
       } else {
         // 使用本地路径（相对于 public 目录）
         screenshotPath = `/uploads/${req.file.filename}`;
@@ -190,11 +222,14 @@ export const getOrders = async (req: Request, res: Response) => {
       prisma.order.count({ where }),
     ]);
 
-    // 解析 itemsJson
-    const ordersWithItems = orders.map((order) => ({
-      ...order,
-      items: JSON.parse(order.itemsJson),
-    }));
+    // 解析 itemsJson 并处理图片路径
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => ({
+        ...order,
+        items: JSON.parse(order.itemsJson),
+        paymentScreenshotPath: await processOrderImagePath(order.paymentScreenshotPath),
+      }))
+    );
 
     return res.json({
       orders: ordersWithItems,
@@ -226,9 +261,13 @@ export const getOrderById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: '订单不存在' });
     }
 
+    // 处理图片路径
+    const processedScreenshotPath = await processOrderImagePath(order.paymentScreenshotPath);
+
     return res.json({
       ...order,
       items: JSON.parse(order.itemsJson),
+      paymentScreenshotPath: processedScreenshotPath,
     });
   } catch (error: any) {
     console.error('Error fetching order:', error);
@@ -254,11 +293,15 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       data: { internalStatus: status },
     });
 
+    // 处理图片路径
+    const processedScreenshotPath = await processOrderImagePath(order.paymentScreenshotPath);
+
     return res.json({
       success: true,
       order: {
         ...order,
         items: JSON.parse(order.itemsJson),
+        paymentScreenshotPath: processedScreenshotPath,
       },
     });
   } catch (error: any) {
@@ -359,11 +402,14 @@ export const getOrdersByPhone = async (req: Request, res: Response) => {
       },
     });
 
-    // 解析 itemsJson
-    const ordersWithItems = orders.map((order) => ({
-      ...order,
-      items: JSON.parse(order.itemsJson),
-    }));
+    // 解析 itemsJson 并处理图片路径
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => ({
+        ...order,
+        items: JSON.parse(order.itemsJson),
+        paymentScreenshotPath: await processOrderImagePath(order.paymentScreenshotPath),
+      }))
+    );
 
     return res.json({
       success: true,
