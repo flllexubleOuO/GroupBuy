@@ -47,7 +47,7 @@ app.get('/order', async (req: Request, res: Response) => {
   let shareData = {
     title: 'BAIJIAGROCERIES - 优质商品，超值价格',
     description: 'GOOD PRODUCT! GOOD PRICE! 精选优质商品，超值团购价格。纸巾、手套等生活用品，品质保证，价格优惠！',
-    image: `${baseUrl}/images/share-card.jpg`,
+    image: `${baseUrl}/images/share-card.png`,
     url: `${baseUrl}/order`,
   };
   
@@ -83,7 +83,7 @@ app.get('/order', async (req: Request, res: Response) => {
         shareData = {
           title: `${pkg.name} - 团购优惠`,
           description: description,
-          image: pkg.imageUrl || `${baseUrl}/images/share-card.jpg`,
+          image: pkg.imageUrl || `${baseUrl}/images/share-card.png`,
           url: `${baseUrl}/order?packageId=${packageId}`,
         };
       }
