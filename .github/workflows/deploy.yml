@@ -72,6 +72,25 @@ jobs:
             fi
           EOF
           
+          # 验证图片文件是否已同步
+          echo "🔍 验证图片文件是否已同步..."
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+            cd ${DEPLOY_PATH}
+            if [ -d "public/images" ]; then
+              echo "✅ public/images 目录存在"
+              echo "图片文件列表:"
+              ls -lah public/images/ || echo "图片目录为空"
+            else
+              echo "❌ 警告：public/images 目录不存在！"
+            fi
+            if [ -f "public/images/share-card.png" ]; then
+              echo "✅ share-card.png 文件存在"
+              ls -lh public/images/share-card.png
+            else
+              echo "❌ 警告：share-card.png 文件不存在！"
+            fi
+          EOF
+          
           # 在服务器上执行部署脚本
           echo "🔧 在服务器上执行部署..."
           ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF

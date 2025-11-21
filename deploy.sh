@@ -322,6 +322,23 @@ else
   echo "✅ 视图目录已存在"
 fi
 
+# 确保 public 目录存在（静态文件）
+echo "📁 检查 public 目录..."
+if [ ! -d "public" ]; then
+  echo "❌ 警告：public 目录不存在！"
+else
+  echo "✅ public 目录存在"
+  echo "public 目录内容:"
+  ls -lah public/ | head -10
+  if [ -d "public/images" ]; then
+    echo "✅ public/images 目录存在"
+    echo "图片文件:"
+    ls -lah public/images/ || echo "图片目录为空"
+  else
+    echo "⚠️  public/images 目录不存在"
+  fi
+fi
+
 # 清理开发依赖（可选，节省空间）
 # 注意：如果后续需要重新构建，需要重新安装 devDependencies
 # echo "🧹 清理开发依赖..."
