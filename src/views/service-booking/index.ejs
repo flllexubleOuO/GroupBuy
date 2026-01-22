@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-xl font-bold text-gray-900">服务预约（Service Booking）</div>
+          <div class="text-sm text-gray-500">Phase 2 新增模块 · 入口已就绪</div>
+        </div>
+        <a href="/home" class="text-sm text-blue-600 hover:text-blue-800">返回主页</a>
+      </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="text-sm font-semibold text-gray-900">本阶段说明</div>
+        <ul class="mt-2 text-sm text-gray-700 space-y-1 list-disc list-inside">
+          <li>服务 ≠ 商品（将使用独立的 Service / Booking 数据模型）</li>
+          <li>支持：可预约时间、状态流转、参考图片上传（后续迭代）</li>
+          <li>与订单系统保持弱关联（可扩展，不强耦合）</li>
+        </ul>
+      </div>
+
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="text-sm font-semibold text-gray-900">下一步（建议的最小闭环）</div>
+        <div class="mt-2 text-sm text-gray-700 space-y-1">
+          <div>- 新增 Prisma 模型：Service、Booking</div>
+          <div>- 新增页面：服务列表 / 服务详情 / 预约表单 / 预约成功页</div>
+          <div>- 新增 API：创建预约、查询预约</div>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <a href="/home" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">回到主页</a>
+          <a href="/order" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">去团购</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
