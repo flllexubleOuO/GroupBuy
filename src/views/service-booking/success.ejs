@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Success</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <%- include('../partials/topnav', {
+      title: 'Booking Success',
+      containerClass: 'max-w-3xl',
+      navUsername
+    }) %>
+
+    <div class="flex items-center justify-center px-4 py-10">
+      <div class="bg-white border rounded-xl shadow-sm p-6 max-w-lg w-full">
+        <% if (error) { %>
+          <div class="text-lg font-semibold text-gray-900">Booking</div>
+          <div class="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3"><%= error %></div>
+        <% } else if (!booking) { %>
+          <div class="text-lg font-semibold text-gray-900">Booking</div>
+          <div class="mt-2 text-sm text-gray-600">Booking not found.</div>
+        <% } else { %>
+          <div class="text-lg font-semibold text-gray-900">Booking submitted</div>
+          <div class="mt-2 text-sm text-gray-600">
+            We’ve received your request. We will contact you to confirm the time.
+          </div>
+
+          <div class="mt-4 border rounded-lg p-4 bg-gray-50 text-sm text-gray-800 space-y-2">
+            <div><span class="text-gray-500">Booking ID:</span> <span class="font-mono"><%= booking.id %></span></div>
+            <div><span class="text-gray-500">Service:</span> <%= booking.service ? booking.service.name : '-' %></div>
+            <div><span class="text-gray-500">Name:</span> <%= booking.customerName %></div>
+            <div><span class="text-gray-500">Phone:</span> <%= booking.phone %></div>
+            <div><span class="text-gray-500">Preferred time:</span> <%= booking.preferredTime %></div>
+            <div><span class="text-gray-500">Status:</span> <%= booking.status %></div>
+          </div>
+        <% } %>
+
+        <div class="mt-6 flex items-center gap-3">
+          <a href="/service-booking" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Back to services</a>
+          <a href="/home" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">Home</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

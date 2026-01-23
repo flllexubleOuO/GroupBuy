@@ -67,3 +67,110 @@ model Order {
   @@index([deliveryTime])
 }
 
+// -------------------------
+// Phase 2: Service Booking
+// -------------------------
+model Service {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  price         String?  // Optional display price (kept as string for consistency with Package)
+  durationMins  Int?     // Optional duration for scheduling
+  timeSlotsJson String?  // JSON string of available time slots (e.g. ["2026-02-01 10:00", ...])
+  imageUrl      String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookings      ServiceBooking[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([createdAt])
+}
+
+model ServiceBooking {
+  id                 String   @id @default(uuid())
+  serviceId           String
+  customerName        String
+  phone              String
+  preferredTime      String   // Chosen slot or free-text time
+  status             String   @default("new") // new/confirmed/completed/cancelled
+  referenceImagePath String?
+  optionalNote       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  service            Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// -----------------------------------------
+// Phase 2 (Extension): Custom Service Request
+// -----------------------------------------
+model Merchant {
+  id            String   @id @default(uuid())
+  name          String
+  contactName   String?
+  phone         String?
+  wechat        String?
+  email         String?
+  dashboardKey  String   @unique // simple access key for merchant dashboard (Phase 2 placeholder auth)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  quotes        MerchantQuote[]
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model ServiceRequest {
+  id               String   @id @default(uuid())
+  serviceType      String   // e.g. "Home Cleaning", "Moving Help"
+  title            String?
+  description      String
+  address          String?
+  preferredTime    String?  // free text for user preference
+  referenceImagePath String?
+  status           String   @default("open") // open/selected/closed
+  userName         String
+  userPhone        String
+  userToken        String   @unique // access token for user-only view (Phase 2 placeholder auth)
+  selectedQuoteId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  quotes           MerchantQuote[]
+  selectedQuote    MerchantQuote? @relation("SelectedQuote", fields: [selectedQuoteId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userPhone])
+}
+
+model MerchantQuote {
+  id              String   @id @default(uuid())
+  serviceRequestId String
+  merchantId      String
+  price           String   // quoted price
+  details         String?  // scope / conditions
+  contactInfo     String?  // snapshot contact info provided with this quote (optional)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  serviceRequest  ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  merchant        Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  selectedBy      ServiceRequest[] @relation("SelectedQuote")
+
+  @@unique([serviceRequestId, merchantId])
+  @@index([serviceRequestId])
+  @@index([merchantId])
+  @@index([createdAt])
+}

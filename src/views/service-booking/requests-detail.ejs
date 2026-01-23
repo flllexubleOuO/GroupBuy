@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Service Request</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+      <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-xl font-bold text-gray-900">My Request</div>
+          <div class="text-sm text-gray-500">Quotes are private to you</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/service-booking" class="text-sm text-blue-600 hover:text-blue-800">Services</a>
+          <a href="/home" class="text-sm text-blue-600 hover:text-blue-800">Home</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="text-sm text-gray-500">Type</div>
+            <div class="text-lg font-semibold text-gray-900"><%= request.serviceType %></div>
+            <% if (request.title) { %>
+              <div class="text-sm text-gray-700 mt-1"><%= request.title %></div>
+            <% } %>
+            <div class="text-xs text-gray-500 mt-2">Status: <span class="font-medium"><%= request.status %></span></div>
+          </div>
+          <div class="text-right text-xs text-gray-500">
+            <div>Request ID</div>
+            <div class="font-mono text-gray-700"><%= request.id %></div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div class="text-sm font-medium text-gray-900">Description</div>
+            <div class="mt-1 text-sm text-gray-700 whitespace-pre-line"><%= request.description %></div>
+            <% if (request.address) { %>
+              <div class="mt-3 text-sm"><span class="text-gray-500">Address:</span> <%= request.address %></div>
+            <% } %>
+            <% if (request.preferredTime) { %>
+              <div class="mt-1 text-sm"><span class="text-gray-500">Preferred time:</span> <%= request.preferredTime %></div>
+            <% } %>
+          </div>
+          <div>
+            <div class="text-sm font-medium text-gray-900">Reference image</div>
+            <div class="mt-2">
+              <% if (displayImage) { %>
+                <img src="<%= displayImage %>" class="max-w-full h-40 object-contain border rounded bg-gray-50" />
+              <% } else { %>
+                <div class="text-sm text-gray-500">No image uploaded.</div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-gray-900">Quotes</div>
+          <div class="text-xs text-gray-500">Only you can see these quotes.</div>
+        </div>
+
+        <% if (!request.quotes || request.quotes.length === 0) { %>
+          <div class="mt-3 text-sm text-gray-600">No quotes yet. Please check back later.</div>
+        <% } else { %>
+          <div class="mt-4 space-y-3">
+            <% request.quotes.forEach(function(q) { %>
+              <div class="border rounded-lg p-4 <%= request.selectedQuoteId === q.id ? 'border-green-400 bg-green-50' : 'hover:border-blue-300' %> transition">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900"><%= q.merchant.name %></div>
+                    <div class="text-xs text-gray-500 mt-1">Quoted at <%= new Date(q.createdAt).toLocaleString() %></div>
+                  </div>
+                  <div class="text-right flex-shrink-0">
+                    <div class="text-xs text-gray-500">Price</div>
+                    <div class="text-lg font-bold text-blue-600">$<%= Number(q.price).toFixed(2) %></div>
+                  </div>
+                </div>
+
+                <% if (q.details) { %>
+                  <div class="mt-2 text-sm text-gray-700 whitespace-pre-line"><%= q.details %></div>
+                <% } %>
+
+                <div class="mt-2 text-sm text-gray-700">
+                  <div class="text-xs text-gray-500">Merchant contact (no in-app chat):</div>
+                  <% if (q.contactInfo) { %>
+                    <div class="whitespace-pre-line"><%= q.contactInfo %></div>
+                  <% } else { %>
+                    <div class="text-gray-500">Not provided (yet).</div>
+                  <% } %>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between">
+                  <% if (request.selectedQuoteId === q.id) { %>
+                    <div class="text-sm font-medium text-green-700">Selected</div>
+                  <% } else { %>
+                    <form action="/service-booking/requests/<%= request.id %>/select?token=<%= token %>" method="post">
+                      <input type="hidden" name="quoteId" value="<%= q.id %>" />
+                      <button class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700" type="submit">Select this quote</button>
+                    </form>
+                  <% } %>
+
+                  <div class="text-xs text-gray-400 font-mono">quote: <%= q.id %></div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

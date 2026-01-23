@@ -8,25 +8,12 @@
 </head>
 <body class="bg-gray-50">
   <div class="min-h-screen">
-    <!-- Header -->
-    <div class="bg-white shadow-sm sticky top-0 z-10">
-      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-        <!-- Left: Title -->
-        <div class="min-w-0">
-          <div class="text-xl font-bold text-gray-900 truncate">Group Buy & Service Booking</div>
-          <div class="text-sm text-gray-500 truncate">Unified home entry (Phase 2 extension)</div>
-        </div>
-
-        <div class="flex-1"></div>
-
-        <!-- Right: Nav -->
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <a href="/order" class="text-sm text-blue-600 hover:text-blue-800">Order (Group Buy)</a>
-          <span class="text-gray-300">|</span>
-          <a href="/user-login" class="text-sm text-blue-600 hover:text-blue-800">User Login</a>
-        </div>
-      </div>
-    </div>
+    <%- include('../partials/topnav', {
+      title: 'Group Buy & Service Booking',
+      subtitle: 'Unified home entry (Phase 2 extension)',
+      containerClass: 'max-w-5xl',
+      navUsername
+    }) %>
 
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-8">
       <!-- Entry cards -->

@@ -66,40 +66,46 @@ const multerInstance = multer({
 // 中间件：处理单文件上传
 export const upload = multerInstance.single.bind(multerInstance);
 
+/**
+ * Create an upload middleware for a given field name, and (optionally) upload to S3 if enabled.
+ * This keeps Phase-2 modules (e.g. Service Booking) isolated while reusing the same upload pipeline.
+ */
+export const uploadWithS3Field = (fieldName: string) => {
+  return async (req: any, res: any, next: any) => {
+    multerInstance.single(fieldName)(req, res, async (err: any) => {
+      if (err) {
+        return next(err);
+      }
+
+      // If S3 is enabled and we have a file, upload the in-memory buffer to S3
+      if (config.s3.enabled && req.file) {
+        try {
+          const fileBuffer = req.file.buffer;
+          const fileName = req.file.originalname;
+          const contentType = req.file.mimetype;
+
+          const s3Key = await uploadToS3(fileBuffer, fileName, contentType);
+          req.file.s3Key = s3Key;
+
+          if (config.s3.publicAccess) {
+            req.file.s3Url = getS3PublicUrl(s3Key);
+          }
+
+          // For compatibility, set filename to the S3 key
+          req.file.filename = s3Key;
+        } catch (s3Error: any) {
+          console.error('S3 上传失败:', s3Error);
+          return next(new Error(`文件上传到 S3 失败: ${s3Error.message}`));
+        }
+      }
+
+      next();
+    });
+  };
+};
+
 // 中间件：处理单文件上传并自动上传到 S3（如果启用）
 export const uploadWithS3 = async (req: any, res: any, next: any) => {
-  multerInstance.single('payment_screenshot')(req, res, async (err: any) => {
-    if (err) {
-      return next(err);
-    }
-
-    // 如果启用了 S3 且有文件上传
-    if (config.s3.enabled && req.file) {
-      try {
-        // 将内存中的文件上传到 S3
-        const fileBuffer = req.file.buffer;
-        const fileName = req.file.originalname;
-        const contentType = req.file.mimetype;
-
-        const s3Key = await uploadToS3(fileBuffer, fileName, contentType);
-        
-        // 将 S3 信息附加到文件对象
-        req.file.s3Key = s3Key;
-        
-        // 如果使用公共访问，生成公共 URL；否则只保存 key，稍后生成预签名 URL
-        if (config.s3.publicAccess) {
-          req.file.s3Url = getS3PublicUrl(s3Key);
-        }
-        
-        // 为了兼容性，filename 设置为 S3 key（用于标识是 S3 文件）
-        req.file.filename = s3Key;
-      } catch (s3Error: any) {
-        console.error('S3 上传失败:', s3Error);
-        return next(new Error(`文件上传到 S3 失败: ${s3Error.message}`));
-      }
-    }
-
-    next();
-  });
+  return uploadWithS3Field('payment_screenshot')(req, res, next);
 };
 

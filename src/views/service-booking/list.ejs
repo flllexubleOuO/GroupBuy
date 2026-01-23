@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <%- include('../partials/topnav', {
+      title: 'Service Booking',
+      subtitle: 'Choose a service and make a booking',
+      containerClass: 'max-w-4xl',
+      navUsername
+    }) %>
+
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm"><%= error %></div>
+      <% } %>
+
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="text-sm font-semibold text-gray-900">Two booking modes</div>
+        <div class="mt-2 text-sm text-gray-700 space-y-1">
+          <div>- <span class="font-medium">Fixed services</span>: price/content are predefined (book directly below).</div>
+          <div>- <span class="font-medium">Custom request</span>: describe your scenario and receive <span class="font-medium">private quotes</span> from merchants.</div>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <a href="/service-booking/requests/new" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Post a custom request</a>
+          <a href="/service-booking/merchant" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">Merchant dashboard (needs key)</a>
+        </div>
+        <div class="mt-2 text-xs text-gray-500">
+          Note: merchant dashboard uses a temporary <span class="font-mono">?key=...</span> access method in Phase 2.
+        </div>
+      </div>
+
+      <% if (services && services.length > 0) { %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <% services.forEach(function(svc) { %>
+            <a href="/service-booking/services/<%= svc.id %>" class="bg-white rounded-xl shadow-sm border hover:border-blue-400 transition p-4 block">
+              <div class="flex gap-3">
+                <div class="w-16 h-16 flex-shrink-0 rounded bg-gray-100 border overflow-hidden">
+                  <% if (svc.imageUrl) { %>
+                    <img src="<%= svc.imageUrl %>" alt="<%= svc.name %>" class="w-full h-full object-cover" />
+                  <% } else { %>
+                    <div class="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No image</div>
+                  <% } %>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-semibold text-gray-900 truncate"><%= svc.name %></div>
+                  <div class="text-xs text-gray-500 line-clamp-2 mt-1"><%= svc.description || '' %></div>
+                  <div class="mt-2 flex items-center justify-between">
+                    <div class="text-xs text-gray-500">
+                      <% if (svc.durationMins) { %>
+                        Duration: <%= svc.durationMins %> mins
+                      <% } else { %>
+                        Duration: -
+                      <% } %>
+                    </div>
+                    <div class="text-sm font-bold text-blue-600">
+                      <% if (svc.price) { %>
+                        $<%= Number(svc.price).toFixed(2) %>
+                      <% } else { %>
+                        View →
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <div class="text-sm font-semibold text-gray-900">No services yet</div>
+          <div class="text-sm text-gray-600 mt-2">
+            Add some services via Prisma Studio, then refresh this page.
+          </div>
+          <div class="mt-4 text-xs text-gray-500">
+            Tip: run <code class="px-1 py-0.5 bg-gray-100 border rounded">npm run prisma:studio</code>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>
+
