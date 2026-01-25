@@ -12,6 +12,18 @@ interface PackageItem {
   quantity: number;
 }
 
+function toFriendlyDbErrorMessage(error: any): string | null {
+  const msg = String(error?.message || '');
+  // Prisma + SQLite schema mismatch (pending migrations / wrong DB file)
+  if (msg.includes('does not exist in the current database') || msg.includes('no such column')) {
+    if (msg.includes('Package.merchantId') || msg.includes('Service.merchantId')) {
+      return '数据库结构未更新（缺少 merchantId 等字段）。请确认 .env 的 DATABASE_URL 指向正确的 db，并执行：npm run prisma:migrate，然后重启服务。';
+    }
+    return '数据库结构与当前代码不一致。请执行：npm run prisma:migrate，然后重启服务。';
+  }
+  return null;
+}
+
 /**
  * 获取所有套餐（前台用，只返回启用的）
  */
@@ -74,7 +86,8 @@ export const getActivePackages = async (req: Request, res: Response) => {
     return res.json({ packages: packagesWithItems });
   } catch (error: any) {
     console.error('Error fetching packages:', error);
-    return res.status(500).json({ error: '获取套餐列表失败: ' + error.message });
+    const friendly = toFriendlyDbErrorMessage(error);
+    return res.status(500).json({ error: '获取套餐列表失败: ' + (friendly || error.message) });
   }
 };
 
@@ -139,7 +152,8 @@ export const getAllPackages = async (req: Request, res: Response) => {
     return res.json({ packages: packagesWithItems });
   } catch (error: any) {
     console.error('Error fetching packages:', error);
-    return res.status(500).json({ error: '获取套餐列表失败: ' + error.message });
+    const friendly = toFriendlyDbErrorMessage(error);
+    return res.status(500).json({ error: '获取套餐列表失败: ' + (friendly || error.message) });
   }
 };
 

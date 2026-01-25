@@ -58,7 +58,8 @@ export const createServiceRequest = async (req: any, res: Response) => {
       });
     }
 
-    const userToken = randomToken(16);
+    const isLoggedIn = Boolean(req.session?.auth?.userId);
+    const userToken = isLoggedIn ? null : randomToken(16);
     const referenceImagePath = buildStoredImagePath(req.file);
 
     const created = await prisma.serviceRequest.create({
@@ -73,10 +74,14 @@ export const createServiceRequest = async (req: any, res: Response) => {
         userName: String(userName).trim(),
         userPhone: String(userPhone).trim(),
         userToken,
+        userId: req.session?.auth?.userId || null,
       },
     });
 
-    return res.redirect(`/service-booking/requests/${created.id}?token=${userToken}`);
+    if (userToken) {
+      return res.redirect(`/service-booking/requests/${created.id}?token=${userToken}`);
+    }
+    return res.redirect(`/service-booking/requests/${created.id}`);
   } catch (error) {
     console.error('Error creating service request:', error);
     return res.status(500).send('Failed to create request.');
@@ -87,7 +92,6 @@ export const showUserRequestDetail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const token = String(req.query.token || '');
-    if (!token) return res.status(401).send('Missing token.');
 
     const request = await prisma.serviceRequest.findUnique({
       where: { id },
@@ -103,10 +107,23 @@ export const showUserRequestDetail = async (req: Request, res: Response) => {
     });
 
     if (!request) return res.status(404).send('Request not found.');
-    if (request.userToken !== token) return res.status(403).send('Invalid token.');
+
+    // Access control:
+    // - logged-in user can access own request by userId (or by phone match for older data)
+    // - otherwise fallback to legacy token link
+    if (req.session?.auth?.userId) {
+      const user = await prisma.user.findUnique({ where: { id: req.session.auth.userId } });
+      const ok =
+        Boolean(user && request.userId === user.id) ||
+        Boolean(user && request.userPhone && request.userPhone === user.phone);
+      if (!ok) return res.status(403).send('Forbidden');
+    } else {
+      if (!request.userToken) return res.status(401).send('Login required.');
+      if (!token || request.userToken !== token) return res.status(403).send('Invalid token.');
+    }
 
     const displayImage = processImagePath(request.referenceImagePath);
-    res.render('service-booking/requests-detail', { request, token, displayImage });
+    res.render('service-booking/requests-detail', { request, token: request.userToken ? token : null, displayImage });
   } catch (error) {
     console.error('Error showing user request detail:', error);
     res.status(500).send('Failed to load request.');
@@ -118,12 +135,21 @@ export const selectQuote = async (req: Request, res: Response) => {
     const { id } = req.params;
     const token = String(req.query.token || '');
     const { quoteId } = req.body;
-    if (!token) return res.status(401).send('Missing token.');
     if (!quoteId) return res.status(400).send('Missing quoteId.');
 
     const request = await prisma.serviceRequest.findUnique({ where: { id } });
     if (!request) return res.status(404).send('Request not found.');
-    if (request.userToken !== token) return res.status(403).send('Invalid token.');
+
+    if (req.session?.auth?.userId) {
+      const user = await prisma.user.findUnique({ where: { id: req.session.auth.userId } });
+      const ok =
+        Boolean(user && request.userId === user.id) ||
+        Boolean(user && request.userPhone && request.userPhone === user.phone);
+      if (!ok) return res.status(403).send('Forbidden');
+    } else {
+      if (!request.userToken) return res.status(401).send('Login required.');
+      if (!token || request.userToken !== token) return res.status(403).send('Invalid token.');
+    }
 
     const quote = await prisma.merchantQuote.findUnique({ where: { id: quoteId } });
     if (!quote || quote.serviceRequestId !== id) return res.status(400).send('Invalid quote.');
@@ -133,7 +159,8 @@ export const selectQuote = async (req: Request, res: Response) => {
       data: { selectedQuoteId: quoteId, status: 'selected' },
     });
 
-    res.redirect(`/service-booking/requests/${id}?token=${token}`);
+    if (request.userToken) return res.redirect(`/service-booking/requests/${id}?token=${token}`);
+    return res.redirect(`/service-booking/requests/${id}`);
   } catch (error) {
     console.error('Error selecting quote:', error);
     res.status(500).send('Failed to select quote.');
@@ -144,10 +171,23 @@ export const selectQuote = async (req: Request, res: Response) => {
 export const showMerchantDashboard = async (req: Request, res: Response) => {
   try {
     const key = String(req.query.key || '');
-    if (!key) return res.status(401).send('Missing key.');
+    let merchant = null as any;
+    let effectiveKey: string | null = null;
 
-    const merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
-    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant key.');
+    if (req.session?.auth?.userId && req.session?.auth?.role === 'MERCHANT') {
+      merchant = await prisma.merchant.findFirst({ where: { userId: req.session.auth.userId } });
+    }
+    if (!merchant) {
+      if (!key) {
+        // New preferred flow: merchants should login via /login and be upgraded to MERCHANT role.
+        // Keep legacy ?key=... links working, but don't show a raw 401 to normal users.
+        if (req.session?.auth?.userId) return res.redirect('/account');
+        return res.redirect('/login');
+      }
+      merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
+      effectiveKey = key;
+    }
+    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant access.');
 
     const openRequests = await prisma.serviceRequest.findMany({
       where: { status: 'open' },
@@ -161,7 +201,7 @@ export const showMerchantDashboard = async (req: Request, res: Response) => {
     });
     const quotedSet = new Set(myQuotes.map((q) => q.serviceRequestId));
 
-    res.render('service-booking/merchant-dashboard', { merchant, key, openRequests, quotedSet });
+    res.render('service-booking/merchant-dashboard', { merchant, key: effectiveKey, openRequests, quotedSet });
   } catch (error) {
     console.error('Error showing merchant dashboard:', error);
     res.status(500).send('Failed to load dashboard.');
@@ -172,10 +212,21 @@ export const showMerchantRequestDetail = async (req: Request, res: Response) => 
   try {
     const key = String(req.query.key || '');
     const { id } = req.params;
-    if (!key) return res.status(401).send('Missing key.');
+    let merchant = null as any;
+    let effectiveKey: string | null = null;
 
-    const merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
-    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant key.');
+    if (req.session?.auth?.userId && req.session?.auth?.role === 'MERCHANT') {
+      merchant = await prisma.merchant.findFirst({ where: { userId: req.session.auth.userId } });
+    }
+    if (!merchant) {
+      if (!key) {
+        if (req.session?.auth?.userId) return res.redirect('/account');
+        return res.redirect('/login');
+      }
+      merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
+      effectiveKey = key;
+    }
+    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant access.');
 
     const request = await prisma.serviceRequest.findUnique({ where: { id } });
     if (!request) return res.status(404).send('Request not found.');
@@ -185,7 +236,7 @@ export const showMerchantRequestDetail = async (req: Request, res: Response) => 
     });
 
     const displayImage = processImagePath(request.referenceImagePath);
-    res.render('service-booking/merchant-request-detail', { merchant, key, request, myQuote, displayImage });
+    res.render('service-booking/merchant-request-detail', { merchant, key: effectiveKey, request, myQuote, displayImage });
   } catch (error) {
     console.error('Error showing merchant request detail:', error);
     res.status(500).send('Failed to load request.');
@@ -197,11 +248,22 @@ export const upsertMerchantQuote = async (req: Request, res: Response) => {
     const key = String(req.query.key || '');
     const { id } = req.params; // request id
     const { price, details, contactInfo } = req.body;
-    if (!key) return res.status(401).send('Missing key.');
     if (!price) return res.status(400).send('Missing price.');
 
-    const merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
-    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant key.');
+    let merchant = null as any;
+    let effectiveKey: string | null = null;
+    if (req.session?.auth?.userId && req.session?.auth?.role === 'MERCHANT') {
+      merchant = await prisma.merchant.findFirst({ where: { userId: req.session.auth.userId } });
+    }
+    if (!merchant) {
+      if (!key) {
+        if (req.session?.auth?.userId) return res.redirect('/account');
+        return res.redirect('/login');
+      }
+      merchant = await prisma.merchant.findUnique({ where: { dashboardKey: key } });
+      effectiveKey = key;
+    }
+    if (!merchant || !merchant.isActive) return res.status(403).send('Invalid merchant access.');
 
     const request = await prisma.serviceRequest.findUnique({ where: { id } });
     if (!request) return res.status(404).send('Request not found.');
@@ -222,7 +284,10 @@ export const upsertMerchantQuote = async (req: Request, res: Response) => {
       },
     });
 
-    res.redirect(`/service-booking/merchant/requests/${id}?key=${encodeURIComponent(key)}`);
+    if (effectiveKey) {
+      return res.redirect(`/service-booking/merchant/requests/${id}?key=${encodeURIComponent(effectiveKey)}`);
+    }
+    return res.redirect(`/service-booking/merchant/requests/${id}`);
   } catch (error) {
     console.error('Error upserting merchant quote:', error);
     res.status(500).send('Failed to submit quote.');

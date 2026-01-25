@@ -10,6 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  phone        String   @unique
+  passwordHash String
+  role         String   @default("USER") // USER | MERCHANT | ADMIN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  merchant     Merchant?
+  orders       Order[]
+  bookings     ServiceBooking[]
+  requests     ServiceRequest[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
 model ProductNameMapping {
   id              String   @id @default(uuid())
   shopifyProductId String  @unique // Shopify 商品ID
@@ -34,12 +52,16 @@ model Package {
   imageUrl    String? // 套餐图片URL
   isActive    Boolean  @default(true) // 是否启用
   sortOrder   Int      @default(0) // 排序顺序
+  merchantId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  merchant    Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
 
   @@index([isActive])
   @@index([sortOrder])
   @@index([region])
+  @@index([merchantId])
 }
 
 model Order {
@@ -56,8 +78,11 @@ model Order {
   shopifyOrderId        String?
   internalStatus        String   @default("new")
   optionalNote          String?
+  userId                String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([internalStatus])
   @@index([createdAt])
@@ -65,6 +90,7 @@ model Order {
   @@index([packageId])
   @@index([region])
   @@index([deliveryTime])
+  @@index([userId])
 }
 
 // -------------------------
@@ -80,14 +106,17 @@ model Service {
   imageUrl      String?
   isActive      Boolean  @default(true)
   sortOrder     Int      @default(0)
+  merchantId    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   bookings      ServiceBooking[]
+  merchant      Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
 
   @@index([isActive])
   @@index([sortOrder])
   @@index([createdAt])
+  @@index([merchantId])
 }
 
 model ServiceBooking {
@@ -99,15 +128,18 @@ model ServiceBooking {
   status             String   @default("new") // new/confirmed/completed/cancelled
   referenceImagePath String?
   optionalNote       String?
+  userId             String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   service            Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([serviceId])
   @@index([phone])
   @@index([status])
   @@index([createdAt])
+  @@index([userId])
 }
 
 // -----------------------------------------
@@ -122,10 +154,17 @@ model Merchant {
   email         String?
   dashboardKey  String   @unique // simple access key for merchant dashboard (Phase 2 placeholder auth)
   isActive      Boolean  @default(true)
+  userId        String?  @unique
+  description   String?
+  address       String?
+  openHours     String?  // e.g. "Mon-Fri 09:00-18:00"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   quotes        MerchantQuote[]
+  packages      Package[]
+  services      Service[]
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([isActive])
   @@index([createdAt])
@@ -142,17 +181,20 @@ model ServiceRequest {
   status           String   @default("open") // open/selected/closed
   userName         String
   userPhone        String
-  userToken        String   @unique // access token for user-only view (Phase 2 placeholder auth)
+  userToken        String?  @unique // legacy access token for user-only view (Phase 2 placeholder auth)
+  userId           String?
   selectedQuoteId  String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   quotes           MerchantQuote[]
   selectedQuote    MerchantQuote? @relation("SelectedQuote", fields: [selectedQuoteId], references: [id])
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([createdAt])
   @@index([userPhone])
+  @@index([userId])
 }
 
 model MerchantQuote {

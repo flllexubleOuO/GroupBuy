@@ -72,6 +72,7 @@ export const createServiceBooking = async (req: any, res: Response) => {
         optionalNote: optionalNote ? String(optionalNote).trim() : null,
         referenceImagePath,
         status: 'new',
+        userId: req.session?.auth?.userId || null,
       },
     });
 

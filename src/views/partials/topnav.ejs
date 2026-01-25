@@ -1,0 +1,45 @@
+<%
+  const _title = typeof title !== 'undefined' ? title : '';
+  const _subtitle = typeof subtitle !== 'undefined' ? subtitle : '';
+  const _containerClass = typeof containerClass !== 'undefined' ? containerClass : 'max-w-5xl';
+  const _role = typeof currentRole !== 'undefined' ? currentRole : null;
+  const _isLoggedIn = typeof isLoggedIn !== 'undefined' ? isLoggedIn : false;
+%>
+<div class="bg-white shadow-sm sticky top-0 z-10">
+  <div class="<%= _containerClass %> mx-auto px-4 py-4 flex items-center justify-between gap-4">
+    <div class="min-w-0">
+      <% if (_title) { %>
+        <div class="text-xl font-bold text-gray-900 truncate"><%= _title %></div>
+      <% } %>
+      <% if (_subtitle) { %>
+        <div class="text-sm text-gray-500 truncate"><%= _subtitle %></div>
+      <% } %>
+    </div>
+
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <a href="/home" class="text-sm text-blue-600 hover:text-blue-800">Main</a>
+      <span class="text-gray-300">|</span>
+      <% if (_isLoggedIn && _role === 'ADMIN') { %>
+        <a href="/admin/orders" class="text-sm text-gray-700 hover:text-gray-900">Admin</a>
+        <form method="post" action="/admin/logout" class="inline">
+          <button class="text-sm text-gray-600 hover:text-gray-800" type="submit">Logout</button>
+        </form>
+      <% } else if (_isLoggedIn && _role === 'MERCHANT') { %>
+        <a href="/account" class="text-sm text-gray-700 hover:text-gray-900">Account</a>
+        <a href="/merchant/dashboard" class="text-sm text-gray-700 hover:text-gray-900">Merchant</a>
+        <form method="post" action="/logout" class="inline">
+          <button class="text-sm text-gray-600 hover:text-gray-800" type="submit">Logout</button>
+        </form>
+      <% } else if (_isLoggedIn) { %>
+        <a href="/account" class="text-sm text-gray-700 hover:text-gray-900">Account</a>
+        <form method="post" action="/logout" class="inline">
+          <button class="text-sm text-gray-600 hover:text-gray-800" type="submit">Logout</button>
+        </form>
+      <% } else { %>
+        <a href="/login" class="text-sm text-blue-600 hover:text-blue-800">Login</a>
+        <a href="/register" class="text-sm text-blue-600 hover:text-blue-800">Register</a>
+      <% } %>
+    </div>
+  </div>
+</div>
+

@@ -1,7 +1,5 @@
 import { Router } from 'express';
 import {
-  showLogin,
-  login,
   logout,
   showOrders,
   showOrderDetail,
@@ -32,9 +30,7 @@ import { requireAuth, redirectIfAuthenticated } from '../middlewares/auth';
 
 const router = Router();
 
-// 登录相关
-router.get('/admin/login', redirectIfAuthenticated, showLogin);
-router.post('/admin/login', redirectIfAuthenticated, login);
+// Logout (admin)
 router.post('/admin/logout', requireAuth, logout);
 
 // 订单列表页面

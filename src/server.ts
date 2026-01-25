@@ -8,6 +8,6 @@ app.listen(PORT, () => {
   console.log(`🏠 Home page: http://localhost:${PORT}/home`);
   console.log(`📱 Order page: http://localhost:${PORT}/order`);
   console.log(`🔍 Query order: http://localhost:${PORT}/query-order`);
-  console.log(`🔐 Admin panel: http://localhost:${PORT}/admin/login`);
+  console.log(`🔐 Admin panel: http://localhost:${PORT}/admin-login`);
 });
 

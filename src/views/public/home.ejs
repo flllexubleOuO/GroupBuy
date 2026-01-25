@@ -11,8 +11,7 @@
     <%- include('../partials/topnav', {
       title: 'Group Buy & Service Booking',
       subtitle: 'Unified home entry (Phase 2 extension)',
-      containerClass: 'max-w-5xl',
-      navUsername
+      containerClass: 'max-w-5xl'
     }) %>
 
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-8">
@@ -45,11 +44,11 @@
             <div class="mt-3 text-sm text-blue-600">Lookup →</div>
           </a>
 
-          <!-- Merchant Dashboard -->
-          <a href="/admin/login" class="bg-white rounded-xl shadow-sm border hover:border-blue-400 transition p-4 block">
-            <div class="text-sm font-semibold text-gray-900">Merchant Dashboard</div>
-            <div class="text-xs text-gray-500 mt-1">Admin login / management entry</div>
-            <div class="mt-3 text-sm text-blue-600">Open dashboard →</div>
+          <!-- Account / Merchant -->
+          <a href="<%= (typeof isLoggedIn !== 'undefined' && isLoggedIn) ? '/account' : '/login' %>" class="bg-white rounded-xl shadow-sm border hover:border-blue-400 transition p-4 block">
+            <div class="text-sm font-semibold text-gray-900"><%= (typeof isLoggedIn !== 'undefined' && isLoggedIn) ? 'My Account' : 'Login / Account' %></div>
+            <div class="text-xs text-gray-500 mt-1">User & merchant login, view your history</div>
+            <div class="mt-3 text-sm text-blue-600">Open →</div>
           </a>
         </div>
       </section>

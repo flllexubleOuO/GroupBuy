@@ -8,7 +8,7 @@ router.get('/home', showHome);
 
 // User login placeholder (Phase 2)
 router.get('/user-login', (req, res) => {
-  res.render('public/user-login');
+  res.redirect('/login');
 });
 
 export default router;

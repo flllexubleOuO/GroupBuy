@@ -143,6 +143,7 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
         paymentScreenshotPath: screenshotPath,
         optionalNote: optionalNote || null,
         internalStatus: 'new',
+        userId: req.session?.auth?.userId || null,
       },
     });
 

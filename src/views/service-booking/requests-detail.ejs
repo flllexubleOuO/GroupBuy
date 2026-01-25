@@ -102,7 +102,7 @@
                   <% if (request.selectedQuoteId === q.id) { %>
                     <div class="text-sm font-medium text-green-700">Selected</div>
                   <% } else { %>
-                    <form action="/service-booking/requests/<%= request.id %>/select?token=<%= token %>" method="post">
+                    <form action="/service-booking/requests/<%= request.id %>/select<%= token ? ('?token=' + encodeURIComponent(token)) : '' %>" method="post">
                       <input type="hidden" name="quoteId" value="<%= q.id %>" />
                       <button class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700" type="submit">Select this quote</button>
                     </form>

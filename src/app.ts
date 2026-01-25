@@ -35,6 +35,14 @@ app.use(
   })
 );
 
+// Expose minimal session info to views
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const role = req.session?.auth?.role || req.session?.userRole || (req.session?.isAuthenticated ? 'ADMIN' : null);
+  res.locals.currentRole = role;
+  res.locals.isLoggedIn = Boolean(req.session?.auth?.userId) || Boolean(req.session?.isAuthenticated);
+  next();
+});
+
 // 路由
 app.use(routes);
 

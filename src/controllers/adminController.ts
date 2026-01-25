@@ -31,7 +31,7 @@ export const logout = (req: Request, res: Response) => {
     if (err) {
       console.error('Error destroying session:', err);
     }
-    res.redirect('/admin/login');
+    res.redirect('/admin-login');
   });
 };
 

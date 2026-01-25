@@ -4,6 +4,12 @@ import 'express-session';
 declare module 'express-session' {
   interface SessionData {
     isAuthenticated?: boolean;
+    userRole?: 'USER' | 'MERCHANT' | 'ADMIN';
+    userId?: string;
+    auth?: {
+      userId: string;
+      role: 'USER' | 'MERCHANT' | 'ADMIN';
+    };
   }
 }
 

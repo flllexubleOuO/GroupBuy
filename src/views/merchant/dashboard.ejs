@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商家后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <%- include('../partials/topnav', { title: 'Merchant Dashboard', subtitle: merchant.name, containerClass: 'max-w-6xl' }) %>
+
+    <div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-gray-900">店铺信息</div>
+          <form method="post" action="/logout">
+            <button class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50" type="submit">退出登录</button>
+          </form>
+        </div>
+
+        <form class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" method="post" action="/merchant/profile">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+            <input name="name" value="<%= merchant.name %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">联系人</label>
+            <input name="contactName" value="<%= merchant.contactName || '' %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">电话</label>
+            <input name="phone" value="<%= merchant.phone || '' %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+            <input name="email" value="<%= merchant.email || '' %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">微信</label>
+            <input name="wechat" value="<%= merchant.wechat || '' %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
+            <input name="openHours" value="<%= merchant.openHours || '' %>" placeholder="例如：周一-周五 09:00-18:00" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">地址</label>
+            <input name="address" value="<%= merchant.address || '' %>" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">店铺描述</label>
+            <textarea name="description" rows="4" class="w-full px-3 py-2 border rounded-lg"><%= merchant.description || '' %></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" type="submit">保存店铺信息</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Packages -->
+        <div class="bg-white border rounded-xl shadow-sm p-5">
+          <div class="text-sm font-semibold text-gray-900">上架团购（Packages）</div>
+          <form class="mt-4 space-y-3" method="post" action="/merchant/packages">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">名称 *</label>
+                <input name="name" required class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">团购价 *</label>
+                <input name="price" required class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+              <textarea name="description" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">大区</label>
+                <input name="region" placeholder="中区/西区/北岸/东区" class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">图片 URL</label>
+                <input name="imageUrl" class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            </div>
+            <div class="border rounded-lg p-3 bg-gray-50">
+              <div class="text-sm font-medium text-gray-900">高级字段（可选）</div>
+              <div class="mt-2 space-y-2">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1">itemsJson（默认 []）</label>
+                  <textarea name="itemsJson" rows="3" class="w-full px-3 py-2 border rounded-lg font-mono text-xs">[]</textarea>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" name="isActive" checked />
+                  立即上架
+                </div>
+              </div>
+            </div>
+            <button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" type="submit">创建团购</button>
+          </form>
+
+          <div class="mt-5 space-y-2">
+            <% if (!packages || packages.length === 0) { %>
+              <div class="text-sm text-gray-600">暂无团购</div>
+            <% } else { %>
+              <% packages.forEach(function(p){ %>
+                <div class="border rounded-lg p-3 flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium text-gray-900 truncate"><%= p.name %></div>
+                    <div class="text-xs text-gray-500 mt-1">$<%= p.price %> · <%= p.isActive ? 'Active' : 'Inactive' %></div>
+                  </div>
+                  <form method="post" action="/merchant/packages/<%= p.id %>/delete">
+                    <button class="px-3 py-1.5 rounded-lg border text-gray-700 hover:bg-gray-50 text-sm" type="submit">删除</button>
+                  </form>
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Services -->
+        <div class="bg-white border rounded-xl shadow-sm p-5">
+          <div class="text-sm font-semibold text-gray-900">上架服务（Services）</div>
+          <form class="mt-4 space-y-3" method="post" action="/merchant/services">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">名称 *</label>
+                <input name="name" required class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">价格（展示用）</label>
+                <input name="price" class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+              <textarea name="description" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">时长（分钟）</label>
+                <input name="durationMins" type="number" class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">图片 URL</label>
+                <input name="imageUrl" class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            </div>
+            <div class="border rounded-lg p-3 bg-gray-50">
+              <div class="text-sm font-medium text-gray-900">可选时间段（JSON 数组）</div>
+              <textarea name="timeSlotsJson" rows="3" placeholder='["2026-02-01 10:00","2026-02-01 14:00"]' class="w-full px-3 py-2 border rounded-lg font-mono text-xs"></textarea>
+              <div class="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="isActive" checked />
+                立即上架
+              </div>
+            </div>
+            <button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" type="submit">创建服务</button>
+          </form>
+
+          <div class="mt-5 space-y-2">
+            <% if (!services || services.length === 0) { %>
+              <div class="text-sm text-gray-600">暂无服务</div>
+            <% } else { %>
+              <% services.forEach(function(s){ %>
+                <div class="border rounded-lg p-3 flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium text-gray-900 truncate"><%= s.name %></div>
+                    <div class="text-xs text-gray-500 mt-1"><%= s.isActive ? 'Active' : 'Inactive' %></div>
+                  </div>
+                  <form method="post" action="/merchant/services/<%= s.id %>/delete">
+                    <button class="px-3 py-1.5 rounded-lg border text-gray-700 hover:bg-gray-50 text-sm" type="submit">删除</button>
+                  </form>
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="text-sm font-semibold text-gray-900">服务报价（Custom Service Requests）</div>
+        <div class="text-sm text-gray-600 mt-1">去报价大厅：<a class="text-blue-600 hover:text-blue-800" href="/service-booking/merchant">/service-booking/merchant</a></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
