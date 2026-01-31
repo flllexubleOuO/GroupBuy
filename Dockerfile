@@ -6,7 +6,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install full deps (incl. dev) for TypeScript build
-RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
 
 # Copy source for build
 COPY src ./src

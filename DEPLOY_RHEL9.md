@@ -15,6 +15,12 @@ This project is a Node.js + Express + Prisma app. **In this repo, Prisma migrati
 Follow Docker’s official instructions for RHEL (stable channel).  
 If you already have Docker installed, skip this section.
 
+```bash
+sudo dnf install -y dnf-plugins-core ca-certificates curl
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
 After installation, enable and start Docker:
 
 ```bash
@@ -49,8 +55,10 @@ sudo mkdir -p groupbuy
 sudo chown -R $USER:$USER groupbuy
 cd groupbuy
 
+
 # Clone your repo (or upload via scp/rsync)
-git clone <YOUR_GIT_REPO_URL> .
+dnf install -y git
+git clone https://github.com/flllexubleOuO/GroupBuy.git .
 ```
 
 ### 4) Create the environment file
@@ -62,11 +70,14 @@ cp env.example .env
 vi .env
 ```
 
-Key variables you must set for a real deployment:
-
-- `SESSION_SECRET`: set to a long random string
-- `ADMIN_PASSWORD`: do not keep default
-- `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_API_ACCESS_TOKEN`: if you use Shopify integration
+```
+NODE_ENV=production
+PORT=3000
+SESSION_SECRET=change-me-to-a-long-random-string
+ADMIN_PASSWORD=change-me
+SEED_ON_START=true
+SEED_ALWAYS=true
+```
 
 ### 5) Prepare persistent directories
 
@@ -85,6 +96,11 @@ docker compose up -d --build
 docker compose ps
 ```
 
+If the build fails at `npm ci` with a message about a missing `package-lock.json`, either:
+
+- make sure your repo checkout includes `package-lock.json` (recommended), or
+- pull the latest changes: this repo’s Dockerfile will fall back to `npm install` when the lockfile is missing.
+
 The container entrypoint automatically runs:
 
 - `npx prisma migrate deploy`
@@ -93,25 +109,7 @@ The container entrypoint automatically runs:
 Open:
 
 - `http://<server-ip>:3000/` (redirects to `/home`)
-- Group-buy page: `http://<server-ip>:3000/order`
 
-### 7) (Optional) Auto-seed mock data on startup
-
-**Warning**: the seed script clears tables before inserting mock data (for demo/mock environments).
-
-In `.env`:
-
-```bash
-SEED_ON_START=true
-```
-
-Default behavior is **seed only once** (it writes a marker file to `/data/.seeded` inside the container).
-
-To force seeding on every restart (not recommended):
-
-```bash
-SEED_ALWAYS=true
-```
 
 Then rebuild/restart:
 

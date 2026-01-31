@@ -1,5 +1,3 @@
-version: '3.8'
-
 # NOTE:
 # This file is a future option if/when you migrate Prisma to PostgreSQL.
 # Today your Prisma migrations are locked to SQLite (`prisma/migration_lock.toml`),
