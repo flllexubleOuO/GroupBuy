@@ -18,7 +18,7 @@ If you already have Docker installed, skip this section.
 ```bash
 sudo dnf install -y dnf-plugins-core ca-certificates curl
 sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
 After installation, enable and start Docker:
