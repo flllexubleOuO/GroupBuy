@@ -8,30 +8,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/groupbuy?schema=public
       - PORT=3000
+      # Prisma is currently locked to sqlite in `prisma/migration_lock.toml`,
+      # so Docker deployment defaults to SQLite as well.
+      - DATABASE_URL=file:/data/prod.db
     env_file:
       - .env
     volumes:
       - ./public/uploads:/app/public/uploads
       - ./logs:/app/logs
-    depends_on:
-      - db
+      - ./data/sqlite:/data
     restart: unless-stopped
-
-  db:
-    image: postgres:15-alpine
-    container_name: group-buy-db
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=groupbuy
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-

@@ -1,0 +1,44 @@
+version: '3.8'
+
+# NOTE:
+# This file is a future option if/when you migrate Prisma to PostgreSQL.
+# Today your Prisma migrations are locked to SQLite (`prisma/migration_lock.toml`),
+# so `npx prisma migrate deploy` will NOT work against Postgres until you:
+# - change `prisma/schema.prisma` datasource provider to "postgresql"
+# - regenerate/create PostgreSQL migrations
+
+services:
+  app:
+    build: .
+    container_name: group-buy-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/groupbuy?schema=public
+    env_file:
+      - .env
+    volumes:
+      - ./public/uploads:/app/public/uploads
+      - ./logs:/app/logs
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: group-buy-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=groupbuy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

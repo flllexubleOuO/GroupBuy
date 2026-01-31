@@ -28,7 +28,7 @@
 npm install
 
 # 2. 配置环境变量
-cp .env.example .env
+cp env.example .env
 # 编辑 .env 文件，配置 Shopify 凭证和管理员账号
 
 # 3. 初始化数据库
@@ -81,12 +81,18 @@ npm run dev
 ### Docker 部署
 
 ```bash
-# 使用 Docker Compose
-docker-compose up -d
-
-# 运行数据库迁移
-docker-compose exec app npx prisma migrate deploy
+# 使用 Docker Compose（默认：SQLite）
+docker compose up -d --build
 ```
+
+默认 SQLite 数据库文件会持久化到 `./data/sqlite/prod.db`（容器内路径：`/data/prod.db`）。
+
+如需启动后自动植入 mock 数据（注意：会清空表数据），在 `.env` 里设置：
+
+- `SEED_ON_START=true`：启动时自动执行 `npm run seed`（默认只执行一次，会写入 `/data/.seeded`）
+- `SEED_ALWAYS=true`：每次容器重启都重新 seed（会重复清空/重建数据）
+
+如果你未来要切换到 PostgreSQL，可参考 `docker-compose.postgres.yml`（需要先把 Prisma provider + migrations 迁移到 Postgres）。
 
 详细步骤请参考 [快速开始指南](./QUICKSTART.md#3-docker-部署)。
 

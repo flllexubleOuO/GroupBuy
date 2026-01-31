@@ -12,7 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed": "tsx scripts/seed-all.ts",
+    "seed": "node dist/seed/seed-all.js || tsx scripts/seed-all.ts",
     "seed:all": "npm run seed",
     "seed:services": "npm run seed",
     "seed:merchants": "npm run seed",
@@ -35,14 +35,14 @@
     "ejs": "^3.1.9",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "prisma": "^5.7.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.17.10",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.10.5",
-    "prisma": "^5.7.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }

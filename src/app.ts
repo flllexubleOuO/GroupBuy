@@ -128,7 +128,7 @@ app.get('/query-order', showMyOrdersPage);
 
 // 根路径重定向
 app.get('/', (req: Request, res: Response) => {
-  res.redirect('/order');
+  res.redirect('/home');
 });
 
 // 404 处理
