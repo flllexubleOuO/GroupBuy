@@ -1,10 +1,10 @@
-# Deploy GroupBuy on RHEL 9 (Docker Compose / SQLite)
+# Deploy GroupBuy on RHEL 10 (Docker Compose / SQLite)
 
 This project is a Node.js + Express + Prisma app. **In this repo, Prisma migrations are currently locked to SQLite**, so the recommended production deployment uses **SQLite with a persistent volume**.
 
 ## Prerequisites
 
-- RHEL 9 server (root or sudo access)
+- RHEL 01 server (root or sudo access)
 - A domain is optional (you can use IP + port)
 - Outbound network access for pulling container images (only needed during install/build)
 
