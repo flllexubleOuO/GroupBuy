@@ -47,10 +47,10 @@
                         <select x-model="filters.region" @change="loadOrders()" 
                                 class="w-full px-4 py-2 border rounded-lg">
                             <option value="">全部</option>
-                            <option value="中区">中区</option>
-                            <option value="西区">西区</option>
-                            <option value="北岸">北岸</option>
-                            <option value="东区">东区</option>
+                            <option value="Sydney CBD">Sydney CBD</option>
+                            <option value="Inner West">Inner West</option>
+                            <option value="North Shore">North Shore</option>
+                            <option value="Eastern Suburbs">Eastern Suburbs</option>
                         </select>
                     </div>
                     <div>
@@ -361,7 +361,7 @@
                     if (this.routeOrders.length === 0) return;
                     
                     // 固定的起始点地址
-                    const startAddress = '22 Moselle Avenue, Henderson, Auckland 0610';
+                    const startAddress = '1 George St, Sydney NSW 2000';
                     const origin = encodeURIComponent(startAddress);
                     
                     // 构建 Google Maps 路线规划 URL

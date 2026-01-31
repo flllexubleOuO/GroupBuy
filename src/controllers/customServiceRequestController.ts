@@ -250,6 +250,15 @@ export const upsertMerchantQuote = async (req: Request, res: Response) => {
     const { price, details, contactInfo } = req.body;
     if (!price) return res.status(400).send('Missing price.');
 
+    // Normalize price input (allow "$150", "150 AUD", "150.00", etc.)
+    const rawPrice = String(price).trim();
+    const normalized = rawPrice.replace(/[^0-9.]/g, '');
+    const priceNum = Number.parseFloat(normalized);
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      return res.status(400).send('Invalid price.');
+    }
+    const priceToStore = priceNum.toFixed(2);
+
     let merchant = null as any;
     let effectiveKey: string | null = null;
     if (req.session?.auth?.userId && req.session?.auth?.role === 'MERCHANT') {
@@ -273,12 +282,12 @@ export const upsertMerchantQuote = async (req: Request, res: Response) => {
       create: {
         serviceRequestId: id,
         merchantId: merchant.id,
-        price: String(price).trim(),
+        price: priceToStore,
         details: details ? String(details).trim() : null,
         contactInfo: contactInfo ? String(contactInfo).trim() : null,
       },
       update: {
-        price: String(price).trim(),
+        price: priceToStore,
         details: details ? String(details).trim() : null,
         contactInfo: contactInfo ? String(contactInfo).trim() : null,
       },

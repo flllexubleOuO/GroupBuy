@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cart - GroupBuy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <%- include('../partials/topnav', {
+      title: 'Cart',
+      subtitle: 'Review your group-buy items, then place the order',
+      containerClass: 'max-w-5xl'
+    }) %>
+
+    <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <% if (error) { %>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800"><%= error %></div>
+      <% } %>
+
+      <% if (!cartPackages || cartPackages.length === 0) { %>
+        <div class="bg-white border rounded-xl shadow-sm p-10 text-center">
+          <div class="text-lg font-semibold text-gray-900">Your cart is empty</div>
+          <div class="mt-2 text-sm text-gray-500">Add some packages first.</div>
+          <div class="mt-4">
+            <a href="/order" class="text-sm text-blue-600 hover:text-blue-800">Back to group-buy →</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2 space-y-3">
+            <% cartPackages.forEach(function(p) { %>
+              <div class="bg-white border rounded-xl shadow-sm p-4 flex gap-3">
+                <div class="w-20 h-20 rounded-lg bg-gray-100 border overflow-hidden flex-shrink-0">
+                  <% if (p.imageUrl) { %>
+                    <img src="<%= p.imageUrl %>" alt="<%= p.name %>" class="w-full h-full object-cover" />
+                  <% } else { %>
+                    <div class="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No image</div>
+                  <% } %>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-sm font-semibold text-gray-900 truncate"><%= p.name %></div>
+                      <div class="text-xs text-gray-500 line-clamp-2"><%= p.description || '' %></div>
+                      <% if (p.region) { %>
+                        <div class="mt-1 text-[11px] text-gray-500">Region: <%= p.region %></div>
+                      <% } %>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                      <% if (p.originalPrice) { %>
+                        <div class="text-[11px] text-gray-400 line-through">$<%= Number(p.originalPrice).toFixed(2) %></div>
+                        <div class="text-sm font-bold text-red-600">$<%= Number(p.price).toFixed(2) %></div>
+                      <% } else { %>
+                        <div class="text-sm font-bold text-blue-600">$<%= Number(p.price).toFixed(2) %></div>
+                      <% } %>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <button class="w-9 h-9 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300" type="button"
+                        onclick="updateQty('<%= p.id %>', <%= Math.max(0, (p.qty || 0) - 1) %>)">-</button>
+                      <div class="w-14 text-center border rounded-lg py-2 text-sm"><%= p.qty %></div>
+                      <button class="w-9 h-9 rounded-full bg-blue-600 text-white hover:bg-blue-700" type="button"
+                        onclick="updateQty('<%= p.id %>', <%= (p.qty || 0) + 1 %>)">+</button>
+                      <button class="ml-2 text-xs text-gray-600 hover:text-gray-800" type="button"
+                        onclick="updateQty('<%= p.id %>', 0)">Remove</button>
+                    </div>
+                    <div class="text-sm font-semibold text-gray-900">$<%= Number(p.subtotal || 0).toFixed(2) %></div>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+
+          <div class="bg-white border rounded-xl shadow-sm p-5 h-fit">
+            <div class="text-sm font-semibold text-gray-900">Checkout</div>
+            <div class="mt-3 text-xs text-gray-500">Orders are tied to your logged-in account phone: <%= phone %></div>
+
+            <div class="mt-4 space-y-2">
+              <% if (totals && totals.originalTotal > 0) { %>
+                <div class="flex justify-between text-sm text-gray-500">
+                  <span>Original</span>
+                  <span class="line-through">$<%= Number(totals.originalTotal).toFixed(2) %></span>
+                </div>
+              <% } %>
+              <div class="flex justify-between text-sm text-gray-700">
+                <span>Total</span>
+                <span class="font-semibold">$<%= Number(totals.total).toFixed(2) %></span>
+              </div>
+            </div>
+
+            <form class="mt-4 space-y-3" method="post" action="/cart/checkout">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input name="customerName" required class="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Delivery address *</label>
+                <textarea name="address" required rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Delivery time *</label>
+                <% if (allowedDeliveryDates && allowedDeliveryDates.length > 0) { %>
+                  <select name="deliveryTime" required class="w-full px-3 py-2 border rounded-lg">
+                    <option value="">Select a delivery time</option>
+                    <% allowedDeliveryDates.forEach(function(d){ %>
+                      <option value="<%= d %>"><%= d %></option>
+                    <% }); %>
+                  </select>
+                <% } else { %>
+                  <div class="w-full px-3 py-2 border border-yellow-300 bg-yellow-50 rounded-lg text-sm text-yellow-800">
+                    No delivery time options found for these packages.
+                  </div>
+                <% } %>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+                <textarea name="optionalNote" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea>
+              </div>
+
+              <button class="w-full px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400"
+                type="submit" <%= (!allowedDeliveryDates || allowedDeliveryDates.length === 0) ? 'disabled' : '' %>>
+                Place order → Pay
+              </button>
+              <button class="w-full px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50"
+                type="button" onclick="clearCart()">Clear cart</button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    async function updateQty(packageId, qty) {
+      await fetch('/cart/item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId, qty })
+      });
+      window.location.reload();
+    }
+    async function clearCart() {
+      await fetch('/cart/clear', { method: 'POST' });
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
+

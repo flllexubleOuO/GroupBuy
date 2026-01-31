@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>我的账号</title>
+  <title>My Account</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
@@ -19,72 +19,28 @@
           <div class="text-sm text-gray-700 mt-1">Role: <%= user.role %></div>
         </div>
         <form method="post" action="/logout">
-          <button class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50" type="submit">退出登录</button>
+          <button class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50" type="submit">Logout</button>
         </form>
       </div>
-
-      <% if (user.role === 'MERCHANT') { %>
-        <div class="bg-white border rounded-xl shadow-sm p-5">
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold text-gray-900">商家功能</div>
-            <a class="text-sm text-blue-600 hover:text-blue-800" href="/merchant/dashboard">进入商家后台 →</a>
-          </div>
-          <div class="mt-2 text-sm text-gray-600">你是商家账号，可以管理店铺、上架团购与服务。</div>
-        </div>
-      <% } else { %>
-        <div class="bg-white border rounded-xl shadow-sm p-5">
-          <div class="text-sm font-semibold text-gray-900">升级为商家（高级版）</div>
-          <div class="mt-1 text-sm text-gray-600">升级后可管理店铺、上架团购/服务；仍保留普通用户所有功能。</div>
-          <form class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" method="post" action="/merchant/onboard">
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">店铺名称 *</label>
-              <input name="storeName" required class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">联系人</label>
-              <input name="contactName" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">微信</label>
-              <input name="wechat" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
-              <input name="openHours" placeholder="例如：周一-周五 09:00-18:00" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">地址</label>
-              <input name="address" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">店铺描述</label>
-              <textarea name="description" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
-            </div>
-            <div class="md:col-span-2">
-              <button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" type="submit">确认升级为商家</button>
-            </div>
-          </form>
-        </div>
-      <% } %>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Group-buy orders -->
         <div class="bg-white border rounded-xl shadow-sm p-5">
           <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold text-gray-900">团购订单</div>
-            <a class="text-xs text-blue-600 hover:text-blue-800" href="/query-order">公开查询入口</a>
+            <div class="text-sm font-semibold text-gray-900">Group-buy orders</div>
+            <a class="text-xs text-blue-600 hover:text-blue-800" href="/query-order">View all orders</a>
           </div>
           <% if (!groupBuyOrders || groupBuyOrders.length === 0) { %>
-            <div class="mt-3 text-sm text-gray-600">暂无团购订单</div>
+            <div class="mt-3 text-sm text-gray-600">No group-buy orders yet</div>
           <% } else { %>
             <div class="mt-3 space-y-2">
               <% groupBuyOrders.forEach(function(o){ %>
                 <div class="border rounded-lg p-3">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <div class="text-sm font-medium text-gray-900">订单 <span class="font-mono text-xs"><%= o.id %></span></div>
-                      <div class="text-xs text-gray-500 mt-1"><%= new Date(o.createdAt).toLocaleString() %> · 状态: <%= o.internalStatus %></div>
-                      <div class="text-xs text-gray-500 mt-1">配送时间: <%= o.deliveryTime %></div>
+                      <div class="text-sm font-medium text-gray-900">Order <span class="font-mono text-xs"><%= o.id %></span></div>
+                      <div class="text-xs text-gray-500 mt-1"><%= new Date(o.createdAt).toLocaleString() %> · Status: <%= o.internalStatus %></div>
+                      <div class="text-xs text-gray-500 mt-1">Delivery time: <%= o.deliveryTime %></div>
                     </div>
                     <div class="text-right text-xs text-gray-500">
                       <div>Region</div>
@@ -100,18 +56,18 @@
         <!-- Service bookings -->
         <div class="bg-white border rounded-xl shadow-sm p-5">
           <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold text-gray-900">服务预约</div>
-            <a class="text-xs text-blue-600 hover:text-blue-800" href="/service-booking">去预约</a>
+            <div class="text-sm font-semibold text-gray-900">Service bookings</div>
+            <a class="text-xs text-blue-600 hover:text-blue-800" href="/service-booking">Book a service</a>
           </div>
           <% if (!serviceBookings || serviceBookings.length === 0) { %>
-            <div class="mt-3 text-sm text-gray-600">暂无服务预约</div>
+            <div class="mt-3 text-sm text-gray-600">No service bookings yet</div>
           <% } else { %>
             <div class="mt-3 space-y-2">
               <% serviceBookings.forEach(function(b){ %>
                 <div class="border rounded-lg p-3">
                   <div class="text-sm font-medium text-gray-900"><%= b.service ? b.service.name : 'Service' %></div>
-                  <div class="text-xs text-gray-500 mt-1"><%= new Date(b.createdAt).toLocaleString() %> · 状态: <%= b.status %></div>
-                  <div class="text-xs text-gray-500 mt-1">时间: <%= b.preferredTime %></div>
+                  <div class="text-xs text-gray-500 mt-1"><%= new Date(b.createdAt).toLocaleString() %> · Status: <%= b.status %></div>
+                  <div class="text-xs text-gray-500 mt-1">Time: <%= b.preferredTime %></div>
                 </div>
               <% }); %>
             </div>
@@ -122,11 +78,11 @@
       <!-- Custom service requests -->
       <div class="bg-white border rounded-xl shadow-sm p-5">
         <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold text-gray-900">我发布的 Custom Service 报价</div>
-          <a class="text-xs text-blue-600 hover:text-blue-800" href="/service-booking/requests/new">发布新需求</a>
+          <div class="text-sm font-semibold text-gray-900">My custom service requests</div>
+          <a class="text-xs text-blue-600 hover:text-blue-800" href="/service-booking/requests/new">Post a new request</a>
         </div>
         <% if (!serviceRequests || serviceRequests.length === 0) { %>
-          <div class="mt-3 text-sm text-gray-600">暂无需求</div>
+          <div class="mt-3 text-sm text-gray-600">No requests yet</div>
         <% } else { %>
           <div class="mt-3 space-y-3">
             <% serviceRequests.forEach(function(r){ %>
@@ -134,7 +90,7 @@
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-gray-900"><%= r.serviceType %> <span class="text-xs text-gray-500"><%= r.title || '' %></span></div>
-                    <div class="text-xs text-gray-500 mt-1"><%= new Date(r.createdAt).toLocaleString() %> · 状态: <%= r.status %> · 报价数: <%= r.quotes ? r.quotes.length : 0 %></div>
+                    <div class="text-xs text-gray-500 mt-1"><%= new Date(r.createdAt).toLocaleString() %> · Status: <%= r.status %> · Quotes: <%= r.quotes ? r.quotes.length : 0 %></div>
                   </div>
                   <div class="text-right text-xs text-gray-500">
                     <div>Selected</div>
@@ -143,13 +99,14 @@
                 </div>
                 <div class="mt-2 text-sm text-gray-700 line-clamp-2 whitespace-pre-line"><%= r.description %></div>
                 <div class="mt-3">
-                  <a class="text-sm text-blue-600 hover:text-blue-800" href="/service-booking/requests/<%= r.id %><%= r.userToken ? ('?token=' + encodeURIComponent(r.userToken)) : '' %>">查看详情</a>
+                  <a class="text-sm text-blue-600 hover:text-blue-800" href="/service-booking/requests/<%= r.id %><%= r.userToken ? ('?token=' + encodeURIComponent(r.userToken)) : '' %>">View details</a>
                 </div>
               </div>
             <% }); %>
           </div>
         <% } %>
       </div>
+
     </div>
   </div>
 </body>

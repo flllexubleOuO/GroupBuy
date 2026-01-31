@@ -18,17 +18,42 @@ function buildStoredImagePath(file?: Express.Multer.File): string | null {
   return file.filename ? `/uploads/${file.filename}` : null;
 }
 
+function toInt(value: unknown, fallback: number): number {
+  const n = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export const listServices = async (req: Request, res: Response) => {
   try {
-    const services = await prisma.service.findMany({
-      where: { isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
-    });
+    const page = Math.max(1, toInt(req.query.page, 1));
+    const limit = Math.min(50, Math.max(1, toInt(req.query.limit, 12)));
+    const skip = (page - 1) * limit;
 
-    res.render('service-booking/list', { services });
+    const where = { isActive: true as const };
+
+    const [services, total] = await Promise.all([
+      prisma.service.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      prisma.service.count({ where }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    res.render('service-booking/list', {
+      services,
+      pagination: { page, limit, total, totalPages },
+    });
   } catch (error) {
     console.error('Error listing services:', error);
-    res.status(500).render('service-booking/list', { services: [], error: 'Failed to load services.' });
+    res.status(500).render('service-booking/list', {
+      services: [],
+      pagination: { page: 1, limit: 12, total: 0, totalPages: 1 },
+      error: 'Failed to load services.',
+    });
   }
 };
 

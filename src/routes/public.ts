@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOrder, getOrdersByPhone } from '../controllers/orderController';
+import { createOrder } from '../controllers/orderController';
 import { getActivePackages } from '../controllers/packageController';
 import { getProducts } from '../controllers/adminController';
 import { uploadWithS3 } from '../middlewares/upload';
@@ -17,8 +17,8 @@ router.get('/api/products', getProducts);
 // 创建订单（使用 S3 上传中间件）
 router.post('/api/orders', uploadWithS3, createOrder);
 
-// 根据手机号查询订单（公开接口）
-router.get('/api/orders/query', getOrdersByPhone);
+// NOTE: We intentionally do NOT expose a public "query by phone" endpoint.
+// Users should view their own orders only after logging in.
 
 // S3 图片代理（仅当启用 S3 时）
 if (config.s3.enabled) {

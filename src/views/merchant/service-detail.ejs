@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service - <%= svc.name %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <%- include('../partials/topnav', { title: 'Service', subtitle: svc.name, containerClass: 'max-w-4xl' }) %>
+
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="text-lg font-semibold text-gray-900"><%= svc.name %></div>
+            <div class="mt-1 text-sm text-gray-600 whitespace-pre-line"><%= svc.description || '' %></div>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+              <div><span class="text-gray-500">Price:</span> <%= svc.price ? ('$' + Number(svc.price).toFixed(2)) : '-' %></div>
+              <div><span class="text-gray-500">Duration:</span> <%= svc.durationMins ? (svc.durationMins + ' mins') : '-' %></div>
+              <div><span class="text-gray-500">Status:</span> <%= svc.isActive ? 'Active' : 'Inactive' %></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <a href="/merchant/dashboard" class="px-3 py-1.5 rounded-lg border text-gray-700 hover:bg-gray-50 text-sm">Back</a>
+            <form method="post" action="/merchant/services/<%= svc.id %>/delete">
+              <button class="px-3 py-1.5 rounded-lg border text-gray-700 hover:bg-gray-50 text-sm" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+
+        <% if (svc.imageUrl) { %>
+          <div class="mt-4">
+            <div class="text-sm font-medium text-gray-900 mb-2">Image</div>
+            <img src="<%= svc.imageUrl %>" alt="<%= svc.name %>" class="max-w-full h-48 object-contain border rounded bg-gray-50" />
+          </div>
+        <% } %>
+      </div>
+
+      <div class="bg-white border rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-gray-900">Time slots</div>
+          <a href="/service-booking/services/<%= svc.id %>" class="text-sm text-blue-600 hover:text-blue-800">View as customer →</a>
+        </div>
+        <% if (!timeSlots || timeSlots.length === 0) { %>
+          <div class="mt-2 text-sm text-gray-600">No time slots configured.</div>
+        <% } else { %>
+          <div class="mt-3 space-y-2">
+            <% timeSlots.forEach(function(t){ %>
+              <div class="border rounded-lg px-3 py-2 text-sm text-gray-700"><%= t %></div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

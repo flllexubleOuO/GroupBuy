@@ -28,7 +28,7 @@ export const login = async (req: Request, res: Response) => {
   const password = String(req.body.password || '');
 
   if (!identifier || !password) {
-    return res.status(400).render('public/login', { error: '请输入邮箱/手机号与密码', identifier });
+    return res.status(400).render('public/login', { error: 'Please enter email/phone and password.', identifier });
   }
 
   const where = looksLikeEmail(identifier)
@@ -37,19 +37,19 @@ export const login = async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: where as any });
   if (!user) {
-    return res.status(401).render('public/login', { error: '账号或密码错误', identifier });
+    return res.status(401).render('public/login', { error: 'Invalid credentials.', identifier });
   }
 
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
-    return res.status(401).render('public/login', { error: '账号或密码错误', identifier });
+    return res.status(401).render('public/login', { error: 'Invalid credentials.', identifier });
   }
 
   req.session.auth = { userId: user.id, role: user.role as Role };
   req.session.userId = user.id;
   req.session.userRole = user.role as Role;
 
-  if (user.role === 'MERCHANT') return res.redirect('/merchant/dashboard');
+  // Use the same entry for USER and MERCHANT; /account will render different UI by role.
   return res.redirect('/account');
 };
 
@@ -64,13 +64,13 @@ export const register = async (req: Request, res: Response) => {
   const form = { email, phone };
 
   if (!email || !phone || !password) {
-    return res.status(400).render('public/register', { error: '请填写邮箱、手机号和密码', form });
+    return res.status(400).render('public/register', { error: 'Please fill in email, phone, and password.', form });
   }
   if (!email.includes('@')) {
-    return res.status(400).render('public/register', { error: '邮箱格式不正确', form });
+    return res.status(400).render('public/register', { error: 'Invalid email format.', form });
   }
   if (password.length < 6) {
-    return res.status(400).render('public/register', { error: '密码至少 6 位', form });
+    return res.status(400).render('public/register', { error: 'Password must be at least 6 characters.', form });
   }
 
   const role: Role = 'USER';
@@ -94,10 +94,10 @@ export const register = async (req: Request, res: Response) => {
   } catch (e: any) {
     const msg = String(e?.message || '');
     if (msg.includes('Unique constraint') || msg.includes('UNIQUE')) {
-      return res.status(409).render('public/register', { error: '邮箱或手机号已被注册', form });
+      return res.status(409).render('public/register', { error: 'Email or phone is already registered.', form });
     }
     console.error('register error:', e);
-    return res.status(500).render('public/register', { error: '注册失败，请稍后再试', form });
+    return res.status(500).render('public/register', { error: 'Registration failed. Please try again later.', form });
   }
 };
 
@@ -144,6 +144,6 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
   }
 
-  return res.status(401).render('admin/login', { error: '用户名或密码错误' });
+  return res.status(401).render('admin/login', { error: 'Invalid username or password.' });
 };
 

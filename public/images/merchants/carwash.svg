@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="320" rx="32" fill="url(#bg)"/>
+  <g fill="#ffffff" opacity="0.95">
+    <path d="M170 160c6-20 24-34 46-34h80c22 0 40 14 46 34l10 34v10c0 10-8 18-18 18h-10c0-18-14-32-32-32s-32 14-32 32h-68c0-18-14-32-32-32s-32 14-32 32h-10c-10 0-18-8-18-18v-10l10-34Zm46-18c-10 0-18 6-22 16l-4 12h132l-4-12c-4-10-12-16-22-16h-80Zm-56 74c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22Zm192 0c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22Z"/>
+    <path d="M140 110c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14Zm44-4c0-6 4-10 10-10s10 4 10 10-4 10-10 10-10-4-10-10Zm204 4c0-8-6-14-14-14s-14 6-14 14 6 14 14 14 14-6 14-14Z"/>
+  </g>
+  <text x="28" y="54" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="26" fill="#ffffff" opacity="0.95">Car Wash</text>
+</svg>
+

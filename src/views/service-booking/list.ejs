@@ -11,8 +11,7 @@
     <%- include('../partials/topnav', {
       title: 'Service Booking',
       subtitle: 'Choose a service and make a booking',
-      containerClass: 'max-w-4xl',
-      navUsername
+      containerClass: 'max-w-4xl'
     }) %>
 
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
@@ -23,15 +22,12 @@
       <div class="bg-white border rounded-xl shadow-sm p-5">
         <div class="text-sm font-semibold text-gray-900">Two booking modes</div>
         <div class="mt-2 text-sm text-gray-700 space-y-1">
-          <div>- <span class="font-medium">Fixed services</span>: price/content are predefined (book directly below).</div>
-          <div>- <span class="font-medium">Custom request</span>: describe your scenario and receive <span class="font-medium">private quotes</span> from merchants.</div>
+          <div>- <span class="font-medium">Got special needs?</span>: Try Custom Request</div>
+          <!-- <div>- <span class="font-medium">Custom request</span>: describe your scenario and receive <span class="font-medium">private quotes</span> from merchants.</div> -->
         </div>
         <div class="mt-4 flex gap-3">
           <a href="/service-booking/requests/new" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Post a custom request</a>
           <a href="/service-booking/merchant" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">Merchant dashboard (needs key)</a>
-        </div>
-        <div class="mt-2 text-xs text-gray-500">
-          Note: merchant dashboard uses a temporary <span class="font-mono">?key=...</span> access method in Phase 2.
         </div>
       </div>
 
@@ -71,6 +67,22 @@
             </a>
           <% }); %>
         </div>
+
+        <% if (pagination && pagination.totalPages && pagination.totalPages > 1) { %>
+          <div class="flex items-center justify-center gap-2 pt-2">
+            <a
+              href="/service-booking?page=<%= Math.max(1, pagination.page - 1) %>&limit=<%= pagination.limit %>"
+              class="px-3 py-2 rounded-lg border text-sm <%= pagination.page <= 1 ? 'text-gray-400 pointer-events-none bg-gray-50' : 'text-gray-700 hover:bg-gray-50' %>"
+            >Prev</a>
+            <div class="text-sm text-gray-600 px-2">
+              Page <%= pagination.page %> / <%= pagination.totalPages %>
+            </div>
+            <a
+              href="/service-booking?page=<%= Math.min(pagination.totalPages, pagination.page + 1) %>&limit=<%= pagination.limit %>"
+              class="px-3 py-2 rounded-lg border text-sm <%= pagination.page >= pagination.totalPages ? 'text-gray-400 pointer-events-none bg-gray-50' : 'text-gray-700 hover:bg-gray-50' %>"
+            >Next</a>
+          </div>
+        <% } %>
       <% } else { %>
         <div class="bg-white rounded-xl shadow-sm border p-5">
           <div class="text-sm font-semibold text-gray-900">No services yet</div>

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 域名和 HTTPS 自动配置脚本
-# 使用方法: bash scripts/setup-domain-https.sh your-domain.com
+# 使用方法: bash setup-domain-https.sh your-domain.com
 
 set -e
 
@@ -9,7 +9,7 @@ DOMAIN=$1
 
 if [ -z "$DOMAIN" ]; then
   echo "❌ 错误：请提供域名"
-  echo "使用方法: bash scripts/setup-domain-https.sh your-domain.com"
+  echo "使用方法: bash setup-domain-https.sh your-domain.com"
   exit 1
 fi
 

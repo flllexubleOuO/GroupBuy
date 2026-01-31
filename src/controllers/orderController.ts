@@ -62,7 +62,7 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
 
     // 验证必填字段
     if (!customerName || !phone || !address || !deliveryTime || !items) {
-      return res.status(400).json({ error: '缺少必填字段' });
+      return res.status(400).json({ error: 'Missing required fields.' });
     }
 
     // 验证支付方式
@@ -73,7 +73,7 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
 
     // 如果选择立即转账，必须上传截图
     if (finalPaymentMethod === 'transfer' && !req.file) {
-      return res.status(400).json({ error: '请上传付款截图' });
+      return res.status(400).json({ error: 'Please upload payment proof.' });
     }
 
     // 解析商品数据
@@ -81,20 +81,20 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
     try {
       itemsArray = JSON.parse(items);
     } catch (e) {
-      return res.status(400).json({ error: '商品数据格式错误' });
+      return res.status(400).json({ error: 'Invalid items format.' });
     }
 
     if (!Array.isArray(itemsArray) || itemsArray.length === 0) {
-      return res.status(400).json({ error: '请至少选择一个商品' });
+      return res.status(400).json({ error: 'Please select at least one item.' });
     }
 
     // 验证商品数据
     for (const item of itemsArray) {
       if (!item.title || !item.price || !item.quantity) {
-        return res.status(400).json({ error: '商品信息不完整' });
+        return res.status(400).json({ error: 'Item data is incomplete.' });
       }
       if (item.quantity <= 0 || !Number.isInteger(Number(item.quantity))) {
-        return res.status(400).json({ error: '商品数量必须是正整数' });
+        return res.status(400).json({ error: 'Quantity must be a positive integer.' });
       }
     }
 
@@ -177,13 +177,13 @@ export const createOrder = async (req: CreateOrderRequest, res: Response) => {
       console.error('Shopify order creation failed:', shopifyError);
       // 可以选择更新订单状态为错误，或者保持 new 状态让管理员手动处理
       return res.status(500).json({
-        error: '订单已创建，但 Shopify 同步失败，请联系管理员',
+        error: 'Order created, but Shopify sync failed. Please contact support.',
         orderId: order.id,
       });
     }
   } catch (error: any) {
     console.error('Error creating order:', error);
-    return res.status(500).json({ error: '创建订单失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to create order: ' + error.message });
   }
 };
 
@@ -243,7 +243,7 @@ export const getOrders = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching orders:', error);
-    return res.status(500).json({ error: '获取订单列表失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to load orders: ' + error.message });
   }
 };
 
@@ -259,7 +259,7 @@ export const getOrderById = async (req: Request, res: Response) => {
     });
 
     if (!order) {
-      return res.status(404).json({ error: '订单不存在' });
+      return res.status(404).json({ error: 'Order not found' });
     }
 
     // 处理图片路径
@@ -272,7 +272,7 @@ export const getOrderById = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching order:', error);
-    return res.status(500).json({ error: '获取订单详情失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to load order: ' + error.message });
   }
 };
 
@@ -286,7 +286,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     const validStatuses = ['new', 'paid_confirmed', 'preparing', 'delivering', 'completed', 'cancelled'];
     if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({ error: '无效的订单状态' });
+      return res.status(400).json({ error: 'Invalid order status.' });
     }
 
     const order = await prisma.order.update({
@@ -307,7 +307,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error updating order status:', error);
-    return res.status(500).json({ error: '更新订单状态失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to update order status: ' + error.message });
   }
 };
 
@@ -324,7 +324,7 @@ export const deleteOrder = async (req: Request, res: Response) => {
     });
 
     if (!order) {
-      return res.status(404).json({ error: '订单不存在' });
+      return res.status(404).json({ error: 'Order not found' });
     }
 
     // 如果订单有 Shopify 订单ID，先删除 Shopify 订单
@@ -341,7 +341,7 @@ export const deleteOrder = async (req: Request, res: Response) => {
         } else {
           // 其他错误，返回错误信息
           return res.status(500).json({ 
-            error: '删除 Shopify 订单失败: ' + shopifyError.message + '。本地订单未删除。' 
+            error: 'Failed to delete Shopify order: ' + shopifyError.message + '. Local order was not deleted.'
           });
         }
       }
@@ -358,12 +358,12 @@ export const deleteOrder = async (req: Request, res: Response) => {
     return res.json({ 
       success: true, 
       message: order.shopifyOrderId 
-        ? '订单已删除（包括 Shopify 订单）' 
-        : '订单已删除' 
+        ? 'Order deleted (including Shopify order).' 
+        : 'Order deleted.' 
     });
   } catch (error: any) {
     console.error('Error deleting order:', error);
-    return res.status(500).json({ error: '删除订单失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to delete order: ' + error.message });
   }
 };
 
@@ -375,7 +375,7 @@ export const getOrdersByPhone = async (req: Request, res: Response) => {
     const { phone } = req.query;
 
     if (!phone || typeof phone !== 'string') {
-      return res.status(400).json({ error: '请输入手机号' });
+      return res.status(400).json({ error: 'Please enter a phone number.' });
     }
 
     // 查询该手机号的所有订单，按创建时间倒序
@@ -419,7 +419,64 @@ export const getOrdersByPhone = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching orders by phone:', error);
-    return res.status(500).json({ error: '查询订单失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to search orders: ' + error.message });
+  }
+};
+
+/**
+ * My Orders page (login required)
+ * Secure by design: only shows orders tied to the logged-in user's registered phone.
+ */
+export const showMyOrdersPage = async (req: Request, res: Response) => {
+  const userId = req.session?.auth?.userId;
+  if (!userId) return res.redirect('/login');
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true, email: true } });
+    const phone = user?.phone || '';
+
+    const orders = await prisma.order.findMany({
+      where: { phone },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        customerName: true,
+        phone: true,
+        address: true,
+        deliveryTime: true,
+        itemsJson: true,
+        paymentMethod: true,
+        paymentScreenshotPath: true,
+        internalStatus: true,
+        optionalNote: true,
+        createdAt: true,
+      },
+      take: 50,
+    });
+
+    const ordersWithItems = await Promise.all(
+      orders.map(async (o) => {
+        let items: any[] = [];
+        try {
+          items = JSON.parse(o.itemsJson || '[]');
+        } catch {
+          items = [];
+        }
+        return {
+          ...o,
+          items,
+          paymentScreenshotPath: await processOrderImagePath(o.paymentScreenshotPath),
+        };
+      })
+    );
+
+    return res.render('public/query-order', {
+      userEmail: user?.email || '',
+      orders: ordersWithItems,
+    });
+  } catch (error: any) {
+    console.error('Error rendering my orders page:', error);
+    return res.status(500).send('Failed to load your orders.');
   }
 };
 

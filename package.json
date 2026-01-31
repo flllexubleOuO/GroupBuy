@@ -12,8 +12,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed:services": "tsx scripts/seed-services.ts",
-    "seed:merchants": "tsx scripts/seed-merchants.ts"
+    "seed": "tsx scripts/seed-all.ts",
+    "seed:all": "npm run seed",
+    "seed:services": "npm run seed",
+    "seed:merchants": "npm run seed",
+    "seed:demo": "npm run seed"
   },
   "keywords": [
     "shopify",

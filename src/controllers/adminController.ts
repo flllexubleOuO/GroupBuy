@@ -20,7 +20,7 @@ export const login = (req: Request, res: Response) => {
     return res.redirect('/admin/orders');
   }
 
-  res.render('admin/login', { error: '用户名或密码错误' });
+  res.render('admin/login', { error: 'Invalid username or password.' });
 };
 
 /**
@@ -58,7 +58,7 @@ export const showOrders = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error rendering orders page:', error);
     res.status(500).render('admin/orders', {
-      error: '加载订单列表失败',
+      error: 'Failed to load orders.',
       status: 'all',
       phone: '',
       queryString: '',

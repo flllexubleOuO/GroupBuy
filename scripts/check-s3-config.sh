@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 检查 S3 配置脚本
-# 在 EC2 上运行：bash scripts/check-s3-config.sh
+# 在 EC2 上运行：bash check-s3-config.sh
 
 echo "🔍 检查 S3 配置..."
 echo ""

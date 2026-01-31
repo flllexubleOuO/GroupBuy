@@ -4,6 +4,7 @@ import path from 'path';
 import multer from 'multer';
 import routes from './routes';
 import { config } from './config';
+import { showMyOrdersPage } from './controllers/myOrdersController';
 
 const app = express();
 
@@ -109,6 +110,7 @@ app.get('/order', async (req: Request, res: Response) => {
     shareDescription: shareData.description,
     shareImage: shareData.image,
     shareUrl: shareData.url,
+    cartItems: req.session?.cart?.items || {},
   });
 });
 
@@ -122,9 +124,7 @@ app.get('/success', (req: Request, res: Response) => {
 });
 
 // 订单查询页面
-app.get('/query-order', (req: Request, res: Response) => {
-  res.render('public/query-order');
-});
+app.get('/query-order', showMyOrdersPage);
 
 // 根路径重定向
 app.get('/', (req: Request, res: Response) => {
@@ -139,21 +139,51 @@ app.use((req: Request, res: Response) => {
 // 错误处理
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
+
+  const wantsHtml = req.accepts(['html', 'json']) === 'html';
+  const escapeHtml = (s: string) =>
+    s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   
   // 处理 multer 文件上传错误
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
+      if (wantsHtml) {
+        return res
+          .status(400)
+          .send(`<pre>${escapeHtml('File is too large. Please upload an image smaller than 5MB.')}</pre>`);
+      }
       return res.status(400).json({ error: '文件大小超过限制，请上传小于 5MB 的图片文件' });
     }
+    if (wantsHtml) return res.status(400).send(`<pre>${escapeHtml(err.message || 'Upload failed.')}</pre>`);
     return res.status(400).json({ error: err.message || '文件上传失败' });
   }
   
   // 处理文件类型错误（multer fileFilter 抛出的错误）
   if (err.message && (err.message.includes('请上传') || err.message.includes('只允许上传'))) {
+    if (wantsHtml) return res.status(400).send(`<pre>${escapeHtml(err.message)}</pre>`);
     return res.status(400).json({ error: err.message });
+  }
+
+  // Prisma schema mismatch (common when dev.db is outdated)
+  if (err?.code === 'P2022') {
+    const column = err?.meta?.column ? `Missing column: ${String(err.meta.column)}` : 'Missing column in database.';
+    const guidance =
+      'Your SQLite schema is out of date. Fix it by running:\n' +
+      '  rm -f dev.db\n' +
+      '  npm run prisma:migrate\n' +
+      '  npm run seed:demo\n';
+    const msg = `${column}\n\n${guidance}`;
+    if (wantsHtml) return res.status(500).send(`<pre>${escapeHtml(msg)}</pre>`);
+    return res.status(500).json({ error: msg });
   }
   
   // 其他错误
+  if (wantsHtml) return res.status(500).send(`<pre>${escapeHtml('Internal server error.')}</pre>`);
   res.status(500).json({ error: '服务器内部错误' });
 });
 

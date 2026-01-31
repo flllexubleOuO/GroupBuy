@@ -33,6 +33,6 @@ export const showAccount = async (req: Request, res: Response) => {
     }),
   ]);
 
-  res.render('public/account', { user, groupBuyOrders, serviceBookings, serviceRequests });
+  return res.render('public/account', { user, groupBuyOrders, serviceBookings, serviceRequests });
 };
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,22 +10,21 @@
   <div class="min-h-screen">
     <%- include('../partials/topnav', {
       title: 'Login',
-      containerClass: 'max-w-3xl',
-      navUsername
+      containerClass: 'max-w-3xl'
     }) %>
 
     <div class="flex items-center justify-center px-4 py-10">
       <div class="bg-white border rounded-xl shadow-sm p-6 max-w-lg w-full">
-        <div class="text-lg font-semibold text-gray-900">用户登录（占位）</div>
+        <div class="text-lg font-semibold text-gray-900">User login (placeholder)</div>
         <div class="text-sm text-gray-600 mt-2">
-          当前阶段只需要按钮与跳转。后续可在这里接入微信登录/短信登录，或复用现有 session 逻辑。
+          This page is reserved for future WeChat/SMS login. For now, please use the unified login page.
         </div>
         <div class="mt-6 flex items-center gap-3">
-          <a href="/home" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">返回主页</a>
-          <a href="/order" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">去团购</a>
+          <a href="/home" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">Back to home</a>
+          <a href="/order" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Group-buy order</a>
         </div>
         <div class="mt-4 text-xs text-gray-400">
-          管理员登录入口在 <a class="text-blue-600 hover:text-blue-800" href="/admin-login">/admin-login</a>
+          Admin login: <a class="text-blue-600 hover:text-blue-800" href="/admin-login">/admin-login</a>
         </div>
       </div>
     </div>

@@ -1,41 +1,41 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= typeof shareTitle !== 'undefined' ? shareTitle : '团购下单 - 超值优惠商品' %></title>
+    <title><%= typeof shareTitle !== 'undefined' ? shareTitle : 'Group-buy Order' %></title>
     
     <!-- 基础 SEO -->
-    <meta name="description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : '优质团购商品，超值优惠价格，快速配送服务。精选好物，限时优惠，立即下单享受团购价！' %>">
-    <meta name="keywords" content="团购,优惠,配送,购物,限时特惠">
+    <meta name="description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : 'Group-buy deals with fast delivery. Limited-time offers — place your order now!' %>">
+    <meta name="keywords" content="group-buy, deals, delivery, shopping">
     
     <!-- Open Graph (Facebook, LinkedIn 等) -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : '团购下单 - 超值优惠商品' %>">
-    <meta property="og:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : '优质团购商品，超值优惠价格，快速配送服务。精选好物，限时优惠，立即下单享受团购价！' %>">
+    <meta property="og:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : 'Group-buy Order' %>">
+    <meta property="og:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : 'Group-buy deals with fast delivery. Limited-time offers — place your order now!' %>">
     <meta property="og:url" content="<%= typeof shareUrl !== 'undefined' ? shareUrl : (typeof baseUrl !== 'undefined' ? baseUrl : 'http://16.176.25.194:3000') + '/order' %>">
     <meta property="og:image" content="<%= typeof shareImage !== 'undefined' ? shareImage : (typeof baseUrl !== 'undefined' ? baseUrl : 'http://16.176.25.194:3000') + '/images/share-card.png' %>">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:site_name" content="团购系统">
-    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="GroupBuy">
+    <meta property="og:locale" content="en_US">
     
     <!-- 微信分享 (WeChat Open Graph) -->
-    <meta itemprop="name" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : '团购下单 - 超值优惠商品' %>">
-    <meta itemprop="description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : '优质团购商品，超值优惠价格，快速配送服务。精选好物，限时优惠，立即下单享受团购价！' %>">
+    <meta itemprop="name" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : 'Group-buy Order' %>">
+    <meta itemprop="description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : 'Group-buy deals with fast delivery. Limited-time offers — place your order now!' %>">
     <meta itemprop="image" content="<%= typeof shareImage !== 'undefined' ? shareImage : (typeof baseUrl !== 'undefined' ? baseUrl : 'http://16.176.25.194:3000') + '/images/share-card.png' %>">
     
     <!-- 微信特定标签 -->
     <meta name="weixin:card" content="summary_large_image">
-    <meta name="weixin:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : '团购下单 - 超值优惠商品' %>">
-    <meta name="weixin:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : '优质团购商品，超值优惠价格，快速配送服务。精选好物，限时优惠，立即下单享受团购价！' %>">
+    <meta name="weixin:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : 'Group-buy Order' %>">
+    <meta name="weixin:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : 'Group-buy deals with fast delivery. Limited-time offers — place your order now!' %>">
     <meta name="weixin:image" content="<%= typeof shareImage !== 'undefined' ? shareImage : (typeof baseUrl !== 'undefined' ? baseUrl : 'http://16.176.25.194:3000') + '/images/share-card.png' %>">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : '团购下单 - 超值优惠商品' %>">
-    <meta name="twitter:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : '优质团购商品，超值优惠价格，快速配送服务。精选好物，限时优惠，立即下单享受团购价！' %>">
+    <meta name="twitter:title" content="<%= typeof shareTitle !== 'undefined' ? shareTitle : 'Group-buy Order' %>">
+    <meta name="twitter:description" content="<%= typeof shareDescription !== 'undefined' ? shareDescription : 'Group-buy deals with fast delivery. Limited-time offers — place your order now!' %>">
     <meta name="twitter:image" content="<%= typeof shareImage !== 'undefined' ? shareImage : (typeof baseUrl !== 'undefined' ? baseUrl : 'http://16.176.25.194:3000') + '/images/share-card.png' %>">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -102,12 +102,23 @@
 </head>
 <body class="bg-gray-50">
     <div x-data="orderForm()" x-cloak class="min-h-screen pb-24 sm:pb-20">
+        <!-- Toast -->
+        <div x-show="toast.show" x-transition class="fixed top-4 right-4 z-50">
+            <div class="rounded-xl shadow-lg border px-4 py-3 text-sm"
+                 :class="toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'">
+                <span x-text="toast.message"></span>
+            </div>
+        </div>
+
         <!-- Header -->
         <div class="bg-white shadow-sm sticky top-0 z-10">
             <div class="max-w-2xl mx-auto px-4 py-3 sm:py-4">
                 <div class="flex items-center justify-between">
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">团购下单</h1>
-                    <a href="/query-order" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">查询订单</a>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Group-buy Order</h1>
+                    <div class="flex items-center gap-3">
+                        <a href="/cart" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">Cart</a>
+                        <a href="/query-order" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">My orders</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,7 +128,7 @@
             <!-- Loading State -->
             <div x-show="loading" class="text-center py-12">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p class="mt-4 text-gray-600">加载套餐中...</p>
+                <p class="mt-4 text-gray-600">Loading packages...</p>
             </div>
 
             <!-- Error State -->
@@ -126,13 +137,13 @@
             </div>
 
             <!-- Order Form -->
-            <form x-show="!loading && !error" @submit.prevent="submitOrder" class="space-y-6">
+            <form x-show="!loading && !error" @submit.prevent="goToCart" class="space-y-6">
                 <!-- Packages Section -->
                 <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg sm:text-xl font-semibold">选择套餐</h2>
+                        <h2 class="text-lg sm:text-xl font-semibold">Select packages</h2>
                         <span class="text-sm text-gray-500" x-show="filteredPackages.length !== packages.length">
-                            显示 <span x-text="filteredPackages.length"></span> / <span x-text="packages.length"></span>
+                            Showing <span x-text="filteredPackages.length"></span> / <span x-text="packages.length"></span>
                         </span>
                     </div>
                     
@@ -142,7 +153,7 @@
                         <div>
                             <input type="text" 
                                    x-model="filters.search"
-                                   placeholder="搜索套餐名称..."
+                                   placeholder="Search packages..."
                                    class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
                         
@@ -150,30 +161,30 @@
                         <div>
                             <select x-model="filters.region" 
                                     class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">全部大区</option>
-                                <option value="中区">中区</option>
-                                <option value="西区">西区</option>
-                                <option value="北岸">北岸</option>
-                                <option value="东区">东区</option>
+                                <option value="">All regions</option>
+                                <option value="Sydney CBD">Sydney CBD</option>
+                                <option value="Inner West">Inner West</option>
+                                <option value="North Shore">North Shore</option>
+                                <option value="Eastern Suburbs">Eastern Suburbs</option>
                             </select>
                         </div>
                         
                         <!-- Filter by Price Range -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-xs text-gray-600 mb-1">最低价格</label>
+                                <label class="block text-xs text-gray-600 mb-1">Min price</label>
                                 <input type="number" 
                                        x-model.number="filters.minPrice"
-                                       placeholder="最低价"
+                                       placeholder="Min"
                                        min="0"
                                        step="0.01"
                                        class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-600 mb-1">最高价格</label>
+                                <label class="block text-xs text-gray-600 mb-1">Max price</label>
                                 <input type="number" 
                                        x-model.number="filters.maxPrice"
-                                       placeholder="最高价"
+                                       placeholder="Max"
                                        min="0"
                                        step="0.01"
                                        class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -185,7 +196,7 @@
                                 @click="clearFilters()"
                                 x-show="hasActiveFilters"
                                 class="w-full text-sm text-blue-600 hover:text-blue-800 py-1">
-                            清除筛选
+                            Clear filters
                         </button>
                     </div>
                     
@@ -201,9 +212,9 @@
                                             <div class="text-left sm:text-right flex-shrink-0 price-section">
                                                 <template x-if="pkg.originalPrice">
                                                     <div>
-                                                        <p class="text-xs sm:text-sm text-gray-400 line-through" x-text="'原价: $' + parseFloat(pkg.originalPrice).toFixed(2)"></p>
-                                                        <p class="text-lg sm:text-xl font-bold text-red-600" x-text="'团购价: $' + parseFloat(pkg.price).toFixed(2)"></p>
-                                                        <p class="text-xs text-green-600" x-text="'节省: $' + (parseFloat(pkg.originalPrice) - parseFloat(pkg.price)).toFixed(2)"></p>
+                                                        <p class="text-xs sm:text-sm text-gray-400 line-through" x-text="'Original: $' + parseFloat(pkg.originalPrice).toFixed(2)"></p>
+                                                        <p class="text-lg sm:text-xl font-bold text-red-600" x-text="'Deal: $' + parseFloat(pkg.price).toFixed(2)"></p>
+                                                        <p class="text-xs text-green-600" x-text="'Save: $' + (parseFloat(pkg.originalPrice) - parseFloat(pkg.price)).toFixed(2)"></p>
                                                     </div>
                                                 </template>
                                                 <template x-if="!pkg.originalPrice">
@@ -212,7 +223,7 @@
                                             </div>
                                         </div>
                                         <div class="mb-3 item-list">
-                                            <p class="text-xs text-gray-500 mb-2 font-medium">包含商品：</p>
+                                            <p class="text-xs text-gray-500 mb-2 font-medium">Items included:</p>
                                             <div class="space-y-2">
                                                 <template x-for="item in pkg.items" :key="item.shopifyProductId + '-' + item.shopifyVariantId">
                                                     <div class="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
@@ -223,13 +234,13 @@
                                                         </div>
                                                         <div class="flex-shrink-0" x-show="!item.imageUrl">
                                                             <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
-                                                                <span class="text-xs text-gray-400">无图</span>
+                                                                <span class="text-xs text-gray-400">No image</span>
                                                             </div>
                                                         </div>
                                                         <!-- 商品信息 -->
                                                         <div class="flex-1 min-w-0">
                                                             <p class="text-xs sm:text-sm font-medium text-gray-900 break-words" x-text="item.title"></p>
-                                                            <p class="text-xs text-gray-500 mt-0.5" x-text="'数量: ×' + item.quantity"></p>
+                                                            <p class="text-xs text-gray-500 mt-0.5" x-text="'Qty: ×' + item.quantity"></p>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -253,9 +264,9 @@
                                                     <span class="text-lg sm:text-base">+</span>
                                                 </button>
                                             </div>
-                                            <button type="button" @click="sharePackage(pkg.id)" 
+                                            <button type="button" @click="addToCart(pkg.id)"
                                                     class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-300 rounded hover:bg-blue-50 transition-colors touch-manipulation">
-                                                分享
+                                                Add to cart
                                             </button>
                                         </div>
                                     </div>
@@ -263,147 +274,56 @@
                             </div>
                         </template>
                     </div>
+
+                    <!-- Pagination -->
+                    <div x-show="pagination.totalPages > 1" class="mt-6 flex items-center justify-center gap-3">
+                        <button
+                            type="button"
+                            @click="prevPage()"
+                            class="px-3 py-2 rounded-lg border text-sm"
+                            :class="pagination.page <= 1 ? 'text-gray-400 bg-gray-50 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'"
+                            :disabled="pagination.page <= 1"
+                        >
+                            Prev
+                        </button>
+                        <div class="text-sm text-gray-600">
+                            Page <span x-text="pagination.page"></span> / <span x-text="pagination.totalPages"></span>
+                            <span class="text-gray-400">·</span>
+                            <span x-text="pagination.total"></span> total
+                        </div>
+                        <button
+                            type="button"
+                            @click="nextPage()"
+                            class="px-3 py-2 rounded-lg border text-sm"
+                            :class="pagination.page >= pagination.totalPages ? 'text-gray-400 bg-gray-50 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'"
+                            :disabled="pagination.page >= pagination.totalPages"
+                        >
+                            Next
+                        </button>
+                    </div>
                     <div x-show="filteredPackages.length === 0 && packages.length > 0" class="text-center text-gray-500 py-8">
-                        <p class="mb-2">没有找到符合条件的套餐</p>
+                        <p class="mb-2">No packages match your filters.</p>
                         <button type="button" @click="clearFilters()" class="text-blue-600 hover:text-blue-800 text-sm">
-                            清除筛选条件
+                            Clear filters
                         </button>
                     </div>
                     <div x-show="packages.length === 0 && !loading" class="text-center text-gray-500 py-8">
-                        暂无可用套餐
+                        No packages available
                     </div>
                 </div>
 
-                <!-- Customer Info -->
-                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                    <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">客户信息</h2>
-                    <div class="space-y-3 sm:space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
-                            <input type="text" x-model="formData.customerName" required
-                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">手机号 *</label>
-                            <input type="tel" x-model="formData.phone" required
-                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">收货地址 *</label>
-                            <textarea x-model="formData.address" required rows="3"
-                                      class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base resize-none"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">期望配送时间 *</label>
-                            <!-- 显示选中套餐的送货日期选项 -->
-                            <template x-if="getSelectedPackageDeliveryDates().length > 0">
-                                <select x-model="formData.deliveryTime" required
-                                        class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base">
-                                    <option value="">请选择配送时间</option>
-                                    <template x-for="date in getSelectedPackageDeliveryDates()" :key="date">
-                                        <option :value="date" x-text="date"></option>
-                                    </template>
-                                </select>
-                                <p class="mt-1 text-xs text-gray-500">请从套餐设置的配送时间中选择</p>
-                            </template>
-                            <!-- 如果没有选中的套餐或套餐没有设置送货日期，显示提示 -->
-                            <template x-if="getSelectedPackageDeliveryDates().length === 0">
-                                <div class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border border-yellow-300 bg-yellow-50 rounded-lg text-sm text-yellow-800">
-                                    <p>请先选择套餐，配送时间将根据所选套餐自动显示</p>
-                                </div>
-                            </template>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">备注（可选）</label>
-                            <textarea x-model="formData.optionalNote" rows="2"
-                                      class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base resize-none"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payment Info -->
-                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                    <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">付款信息</h2>
-                    
-                    <!-- 支付方式选择 -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">选择支付方式 *</label>
-                        <div class="space-y-3">
-                            <!-- 立即转账 -->
-                            <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors"
-                                   :class="formData.paymentMethod === 'transfer' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
-                                <input type="radio" 
-                                       x-model="formData.paymentMethod" 
-                                       value="transfer"
-                                       @change="onPaymentMethodChange()"
-                                       class="mt-1 mr-3 text-blue-600 focus:ring-blue-500">
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-900">立即转账</div>
-                                    <div class="text-xs text-gray-600 mt-1">请转账到指定银行账号，完成后上传付款截图</div>
-                                    <div class="text-xs text-gray-500 mt-1 break-all">银行账号：XX-XXXX-XXXXXX-XX</div>
-                                </div>
-                            </label>
-                            
-                            <!-- 送货到户付款 -->
-                            <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors"
-                                   :class="formData.paymentMethod === 'cash_on_delivery' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
-                                <input type="radio" 
-                                       x-model="formData.paymentMethod" 
-                                       value="cash_on_delivery"
-                                       @change="onPaymentMethodChange()"
-                                       class="mt-1 mr-3 text-blue-600 focus:ring-blue-500">
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-900">送货到户时付款</div>
-                                    <div class="text-xs text-gray-600 mt-1">配送员送货时现场收款，无需提前转账</div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- 付款截图（仅立即转账时显示） -->
-                    <div x-show="formData.paymentMethod === 'transfer'">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">付款截图 *</label>
-                        <input type="file" @change="handleFileSelect" accept="image/*" 
-                               :required="formData.paymentMethod === 'transfer'"
-                               class="w-full px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                        <p class="mt-1 text-xs text-gray-500">支持 JPG、PNG、GIF 格式，最大 5MB</p>
-                        <div x-show="formData.paymentScreenshot" class="mt-2">
-                            <img :src="previewImage" alt="预览" class="max-w-full h-32 sm:h-40 object-contain border rounded">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total -->
-                <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 total-section">
-                    <div class="space-y-2">
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                            <span class="text-base sm:text-lg font-semibold">总计：</span>
-                            <div class="text-left sm:text-right">
-                                <template x-if="originalTotal > 0">
-                                    <div>
-                                        <p class="text-xs sm:text-sm text-gray-400 line-through" x-text="'原价: $' + originalTotal.toFixed(2)"></p>
-                                        <p class="text-xl sm:text-2xl font-bold text-red-600" x-text="'团购价: $' + total.toFixed(2)"></p>
-                                        <p class="text-xs sm:text-sm text-green-600" x-text="'节省: $' + (originalTotal - total).toFixed(2)"></p>
-                                    </div>
-                                </template>
-                                <template x-if="originalTotal === 0">
-                                    <span class="text-xl sm:text-2xl font-bold text-blue-600" x-text="'$' + total.toFixed(2)"></span>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
+                <!-- Go to cart -->
                 <button type="submit" 
                         :disabled="submitting || total === 0"
                         class="w-full bg-blue-600 text-white py-4 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation shadow-lg">
-                    <span x-show="!submitting">提交订单</span>
-                    <span x-show="submitting">提交中...</span>
+                    <span x-show="!submitting">Go to cart</span>
+                    <span x-show="submitting">Saving...</span>
                 </button>
             </form>
         </div>
     </div>
+
+    <script type="application/json" id="cartInitJson"><%- JSON.stringify((typeof cartItems !== 'undefined' && cartItems) ? cartItems : {}) %></script>
 
     <script>
         function orderForm() {
@@ -411,6 +331,7 @@
                 loading: true,
                 error: null,
                 packages: [],
+                pagination: { page: 1, limit: 12, total: 0, totalPages: 1 },
                 selectedPackages: {},
                 filters: {
                     search: '',
@@ -418,51 +339,82 @@
                     minPrice: null,
                     maxPrice: null,
                 },
-                formData: {
-                    customerName: '',
-                    phone: '',
-                    address: '',
-                    deliveryTime: '',
-                    optionalNote: '',
-                    paymentMethod: 'transfer', // 默认选择立即转账
-                    paymentScreenshot: null,
-                },
-                previewImage: null,
+                cartInit: {},
                 submitting: false,
+                toast: { show: false, message: '', type: 'success' },
+                toastTimer: null,
+                searchTimer: null,
 
-                async init() {
+                showToast(message, type = 'success') {
+                    this.toast = { show: true, message, type };
+                    if (this.toastTimer) clearTimeout(this.toastTimer);
+                    this.toastTimer = setTimeout(() => { this.toast.show = false; }, 1800);
+                },
+
+                buildPackagesUrl(page) {
+                    const params = new URLSearchParams();
+                    params.set('page', String(page || 1));
+                    params.set('limit', String(this.pagination.limit || 12));
+                    if (this.filters.region) params.set('region', this.filters.region);
+                    if (this.filters.search && this.filters.search.trim()) params.set('q', this.filters.search.trim());
+                    return '/api/packages?' + params.toString();
+                },
+
+                async loadPackages(page = 1) {
                     try {
-                        const response = await fetch('/api/packages');
+                        this.loading = true;
+                        const response = await fetch(this.buildPackagesUrl(page));
                         const data = await response.json();
                         if (data.error) {
                             this.error = data.error;
                         } else {
                             this.packages = data.packages || [];
+                            if (data.pagination) {
+                                this.pagination = {
+                                    page: data.pagination.page || page,
+                                    limit: data.pagination.limit || this.pagination.limit,
+                                    total: data.pagination.total || 0,
+                                    totalPages: data.pagination.totalPages || 1,
+                                };
+                            } else {
+                                this.pagination.page = page;
+                            }
                         }
+
+                        // Initialize quantities from session cart (if any)
+                        try {
+                            const el = document.getElementById('cartInitJson');
+                            this.cartInit = el ? JSON.parse(el.textContent || '{}') : {};
+                        } catch {
+                            this.cartInit = {};
+                        }
+                        if (this.cartInit && typeof this.cartInit === 'object') this.selectedPackages = { ...this.cartInit };
                     } catch (err) {
-                        this.error = '加载套餐失败，请刷新重试';
+                        this.error = 'Failed to load packages. Please refresh and try again.';
                         console.error(err);
                     } finally {
                         this.loading = false;
                     }
                 },
 
+                async init() {
+                    // Initial load
+                    await this.loadPackages(1);
+
+                    // Server-side search / region filtering (debounced)
+                    this.$watch('filters.search', () => {
+                        if (this.searchTimer) clearTimeout(this.searchTimer);
+                        this.searchTimer = setTimeout(() => {
+                            this.loadPackages(1);
+                        }, 250);
+                    });
+                    this.$watch('filters.region', () => {
+                        this.loadPackages(1);
+                    });
+                },
+
                 get filteredPackages() {
                     let filtered = [...this.packages];
-                    
-                    // 按名称搜索
-                    if (this.filters.search && this.filters.search.trim()) {
-                        const searchTerm = this.filters.search.trim().toLowerCase();
-                        filtered = filtered.filter(pkg => 
-                            pkg.name.toLowerCase().includes(searchTerm) ||
-                            (pkg.description && pkg.description.toLowerCase().includes(searchTerm))
-                        );
-                    }
-                    
-                    // 按大区筛选
-                    if (this.filters.region) {
-                        filtered = filtered.filter(pkg => pkg.region === this.filters.region);
-                    }
                     
                     // 按价格范围筛选
                     if (this.filters.minPrice !== null && this.filters.minPrice !== '') {
@@ -489,6 +441,19 @@
                         minPrice: null,
                         maxPrice: null,
                     };
+                    this.loadPackages(1);
+                },
+
+                async prevPage() {
+                    if (this.pagination.page <= 1) return;
+                    await this.loadPackages(this.pagination.page - 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+
+                async nextPage() {
+                    if (this.pagination.page >= this.pagination.totalPages) return;
+                    await this.loadPackages(this.pagination.page + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 },
 
                 getQuantity(packageId) {
@@ -500,25 +465,13 @@
                         this.selectedPackages[packageId] = 0;
                     }
                     this.selectedPackages[packageId]++;
-                    // 当选择套餐后，清空配送时间，让用户重新选择
-                    this.formData.deliveryTime = '';
                 },
 
                 decreaseQuantity(packageId) {
                     if (this.selectedPackages[packageId] > 0) {
                         this.selectedPackages[packageId]--;
-                        // 如果数量变为0，检查是否还有其他选中的套餐，如果没有则清空配送时间
                         if (this.selectedPackages[packageId] === 0) {
-                            const hasSelectedPackages = Object.values(this.selectedPackages).some(qty => qty > 0);
-                            if (!hasSelectedPackages) {
-                                this.formData.deliveryTime = '';
-                            } else {
-                                // 重新验证配送时间是否仍然有效
-                                const allowedDates = this.getSelectedPackageDeliveryDates();
-                                if (allowedDates.length > 0 && !allowedDates.includes(this.formData.deliveryTime)) {
-                                    this.formData.deliveryTime = '';
-                                }
-                            }
+                            // keep 0 (not in cart) unless user clicks "Add to cart"
                         }
                     }
                 },
@@ -528,39 +481,7 @@
                     this.selectedPackages[packageId] = Math.max(0, num);
                 },
 
-                handleFileSelect(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        // 检查文件大小（5MB）
-                        if (file.size > 5 * 1024 * 1024) {
-                            alert('文件大小不能超过 5MB');
-                            event.target.value = '';
-                            return;
-                        }
-                        this.formData.paymentScreenshot = file;
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            this.previewImage = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        this.formData.paymentScreenshot = null;
-                        this.previewImage = null;
-                    }
-                },
-
-                onPaymentMethodChange() {
-                    // 如果切换到"送货到户付款"，清空截图
-                    if (this.formData.paymentMethod === 'cash_on_delivery') {
-                        this.formData.paymentScreenshot = null;
-                        this.previewImage = null;
-                        // 清空文件输入框
-                        const fileInput = document.querySelector('input[type="file"]');
-                        if (fileInput) {
-                            fileInput.value = '';
-                        }
-                    }
-                },
+                // Payment is handled in /payment
 
                 get total() {
                     let total = 0;
@@ -582,22 +503,6 @@
                     return total;
                 },
 
-                getSelectedPackageDeliveryDates() {
-                    // 收集所有选中套餐的送货日期选项（去重并排序）
-                    const dateSet = new Set();
-                    for (const pkg of this.packages) {
-                        const quantity = this.selectedPackages[pkg.id] || 0;
-                        if (quantity > 0 && pkg.deliveryDates && Array.isArray(pkg.deliveryDates)) {
-                            pkg.deliveryDates.forEach(date => {
-                                if (date && date.trim()) {
-                                    dateSet.add(date.trim());
-                                }
-                            });
-                        }
-                    }
-                    return Array.from(dateSet).sort();
-                },
-
                 getPackageImages(pkg) {
                     // 如果套餐有设置图片，返回空数组（前端会显示套餐图片）
                     if (pkg.imageUrl) {
@@ -615,160 +520,34 @@
                     return images;
                 },
 
-                sharePackage(packageId) {
-                    // 构建分享链接
-                    const shareUrl = `${window.location.origin}/order?packageId=${packageId}`;
-                    
-                    // 尝试使用 Web Share API（如果支持）
-                    if (navigator.share) {
-                        navigator.share({
-                            title: '团购优惠套餐',
-                            text: '发现一个超值团购套餐，快来查看！',
-                            url: shareUrl,
-                        }).catch(err => {
-                            console.log('分享取消或失败:', err);
-                            // 如果分享失败，回退到复制链接
-                            this.copyToClipboard(shareUrl);
-                        });
-                    } else {
-                        // 不支持 Web Share API，复制链接到剪贴板
-                        this.copyToClipboard(shareUrl);
-                    }
+                // Share is replaced by "Add to cart"
+
+                async goToCart() {
+                    // Cart is only updated when user clicks "Add to cart".
+                    // Here we just navigate to the cart page.
+                    window.location.href = '/cart';
                 },
 
-                copyToClipboard(text) {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(text).then(() => {
-                            alert('链接已复制到剪贴板！\n\n您可以在微信中粘贴并分享给朋友。\n\n分享链接：' + text);
-                        }).catch(err => {
-                            console.error('复制失败:', err);
-                            this.fallbackCopyTextToClipboard(text);
-                        });
-                    } else {
-                        this.fallbackCopyTextToClipboard(text);
-                    }
-                },
+                async addToCart(packageId) {
+                    const qty = this.getQuantity(packageId);
+                    const finalQty = qty > 0 ? qty : 1; // default add 1 if user didn't increase
+                    this.selectedPackages[packageId] = finalQty;
 
-                fallbackCopyTextToClipboard(text) {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    textArea.style.position = 'fixed';
-                    textArea.style.left = '-999999px';
-                    textArea.style.top = '-999999px';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
                     try {
-                        document.execCommand('copy');
-                        alert('链接已复制到剪贴板！\n\n您可以在微信中粘贴并分享给朋友。\n\n分享链接：' + text);
-                    } catch (err) {
-                        console.error('复制失败:', err);
-                        alert('无法自动复制，请手动复制链接：\n\n' + text);
-                    }
-                    document.body.removeChild(textArea);
-                },
-
-                async submitOrder() {
-                    // 验证
-                    if (this.total === 0) {
-                        alert('请至少选择一个套餐');
-                        return;
-                    }
-
-                    if (!this.formData.customerName || !this.formData.phone || !this.formData.address || !this.formData.deliveryTime) {
-                        alert('请填写所有必填字段');
-                        return;
-                    }
-
-                    // 验证配送时间是否在允许的选项中
-                    const allowedDates = this.getSelectedPackageDeliveryDates();
-                    if (allowedDates.length > 0) {
-                        if (!allowedDates.includes(this.formData.deliveryTime)) {
-                            alert('请从套餐设置的配送时间中选择');
+                        const resp = await fetch('/cart/item', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ packageId, qty: finalQty }),
+                        });
+                        if (!resp.ok) {
+                            const data = await resp.json().catch(() => ({}));
+                            this.showToast(data.error || 'Failed to add to cart.', 'error');
                             return;
                         }
-                    } else {
-                        alert('请先选择套餐');
-                        return;
-                    }
-
-                    // 验证支付方式
-                    if (!this.formData.paymentMethod) {
-                        alert('请选择支付方式');
-                        return;
-                    }
-
-                    // 如果选择立即转账，必须上传截图
-                    if (this.formData.paymentMethod === 'transfer' && !this.formData.paymentScreenshot) {
-                        alert('请上传付款截图');
-                        return;
-                    }
-
-                    // 构建订单数据
-                    const items = [];
-                    let selectedPackageId = null;
-                    for (const pkg of this.packages) {
-                        const quantity = this.selectedPackages[pkg.id] || 0;
-                        if (quantity > 0) {
-                            // 记录第一个选中的套餐ID（如果只选了一个套餐）
-                            if (!selectedPackageId && Object.keys(this.selectedPackages).filter(k => this.selectedPackages[k] > 0).length === 1) {
-                                selectedPackageId = pkg.id;
-                            }
-                            // 将套餐的所有商品添加到订单中
-                            // 计算每个商品在套餐中的团购价（套餐总价 / 套餐商品总数）
-                            const totalPackagePrice = parseFloat(pkg.price);
-                            const totalItemsInPackage = pkg.items.reduce((sum, item) => sum + item.quantity, 0);
-                            const pricePerItem = totalItemsInPackage > 0 ? totalPackagePrice / totalItemsInPackage : 0;
-                            
-                            for (const item of pkg.items) {
-                                items.push({
-                                    title: `${pkg.name} - ${item.title}`,
-                                    price: pricePerItem.toFixed(2), // 使用团购价，而不是原价
-                                    quantity: item.quantity * quantity, // 套餐数量 × 商品数量
-                                    shopifyProductId: item.shopifyProductId, // 保存商品ID
-                                    shopifyVariantId: item.shopifyVariantId, // 保存变体ID
-                                });
-                            }
-                        }
-                    }
-
-                    this.submitting = true;
-
-                    try {
-                        const formData = new FormData();
-                        formData.append('customerName', this.formData.customerName);
-                        formData.append('phone', this.formData.phone);
-                        formData.append('address', this.formData.address);
-                        formData.append('deliveryTime', this.formData.deliveryTime);
-                        formData.append('optionalNote', this.formData.optionalNote || '');
-                        formData.append('paymentMethod', this.formData.paymentMethod);
-                        formData.append('items', JSON.stringify(items));
-                        if (selectedPackageId) {
-                            formData.append('packageId', selectedPackageId);
-                        }
-                        // 仅立即转账时需要上传截图
-                        if (this.formData.paymentMethod === 'transfer' && this.formData.paymentScreenshot) {
-                            formData.append('payment_screenshot', this.formData.paymentScreenshot);
-                        }
-
-                        const response = await fetch('/api/orders', {
-                            method: 'POST',
-                            body: formData,
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok && (data.success || data.orderId)) {
-                            window.location.href = `/success?orderId=${data.orderId || ''}`;
-                        } else {
-                            // 显示错误信息，特别是文件格式错误
-                            alert(data.error || '提交失败，请重试');
-                            this.submitting = false;
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('提交失败，请检查网络连接');
-                        this.submitting = false;
+                        this.showToast('Added to cart.');
+                    } catch (e) {
+                        console.error(e);
+                        this.showToast('Failed to add to cart. Please check your network and try again.', 'error');
                     }
                 },
             };

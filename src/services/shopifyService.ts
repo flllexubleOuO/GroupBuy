@@ -173,7 +173,9 @@ class ShopifyService {
           last_name: lastName,
           phone: orderData.phone,
           address1: orderData.address,
-          country: 'NZ', // 新西兰
+          city: 'Sydney',
+          province: 'NSW',
+          country: 'AU', // Australia (Sydney)
         },
         financial_status: 'paid',
         note: note,

@@ -9,7 +9,7 @@ function key() {
 
 async function main() {
   const merchants = [
-    { name: 'CleanPro', contactName: 'Alice', phone: '021-000-0001', wechat: 'cleanpro_nz', email: 'alice@cleanpro.test' },
+    { name: 'CleanPro', contactName: 'Alice', phone: '021-000-0001', wechat: 'cleanpro_au', email: 'alice@cleanpro.test' },
     { name: 'Sparkle Team', contactName: 'Ben', phone: '021-000-0002', wechat: 'sparkle_team', email: 'ben@sparkle.test' },
     { name: 'HandyWorks', contactName: 'Chris', phone: '021-000-0003', wechat: 'handyworks', email: 'chris@handyworks.test' },
   ];

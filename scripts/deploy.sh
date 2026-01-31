@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # 部署脚本 - 用于在 EC2 上执行部署
-# 运行：bash scripts/deploy.sh
 
 set -e  # 遇到错误立即退出
 

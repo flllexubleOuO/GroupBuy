@@ -23,6 +23,7 @@ model User {
   orders       Order[]
   bookings     ServiceBooking[]
   requests     ServiceRequest[]
+  merchantReviews MerchantReview[]
 
   @@index([role])
   @@index([createdAt])
@@ -48,7 +49,7 @@ model Package {
   price       String   // 团购价
   itemsJson   String   // JSON string of items array (商品列表，包含shopifyProductId和shopifyVariantId)
   deliveryDatesJson String? // JSON string of delivery dates array (可选送货日期列表)
-  region      String?  // 大区：中区、西区、北岸、东区
+  region      String?  // Sydney region: Sydney CBD / Inner West / North Shore / Eastern Suburbs
   imageUrl    String? // 套餐图片URL
   isActive    Boolean  @default(true) // 是否启用
   sortOrder   Int      @default(0) // 排序顺序
@@ -72,7 +73,8 @@ model Order {
   deliveryTime          String
   itemsJson             String   // JSON string of items array (套餐信息)
   packageId             String?  // 关联的套餐ID（可选，用于历史记录）
-  region                String?  // 大区：中区、西区、北岸、东区（从套餐继承或手动设置）
+  region                String?  // Sydney region (inherited from package)
+  merchantId            String?  // 关联的商家ID（当订单仅涉及单一商家时写入，用于评价等）
   paymentMethod         String   @default("transfer") // 支付方式: "transfer" 或 "cash_on_delivery"
   paymentScreenshotPath String?
   shopifyOrderId        String?
@@ -83,6 +85,8 @@ model Order {
   updatedAt             DateTime @updatedAt
 
   user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  merchant              Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  merchantReview        MerchantReview?
 
   @@index([internalStatus])
   @@index([createdAt])
@@ -91,6 +95,7 @@ model Order {
   @@index([region])
   @@index([deliveryTime])
   @@index([userId])
+  @@index([merchantId])
 }
 
 // -------------------------
@@ -152,6 +157,7 @@ model Merchant {
   phone         String?
   wechat        String?
   email         String?
+  imageUrl      String?
   dashboardKey  String   @unique // simple access key for merchant dashboard (Phase 2 placeholder auth)
   isActive      Boolean  @default(true)
   userId        String?  @unique
@@ -164,9 +170,30 @@ model Merchant {
   quotes        MerchantQuote[]
   packages      Package[]
   services      Service[]
+  orders        Order[]
+  reviews       MerchantReview[]
   user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([isActive])
+  @@index([createdAt])
+}
+
+model MerchantReview {
+  id        String   @id @default(uuid())
+  orderId   String   @unique
+  merchantId String
+  userId    String?
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  merchant  Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId])
+  @@index([userId])
   @@index([createdAt])
 }
 

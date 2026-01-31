@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="320" rx="32" fill="url(#bg)"/>
+  <g fill="#ffffff" opacity="0.95">
+    <path d="M146 120c0-12 10-22 22-22h72c10 0 18 6 22 14 4-8 12-14 22-14h72c12 0 22 10 22 22v130c0 12-10 22-22 22h-72c-12 0-22-10-22-22V132c0-8-6-14-14-14h-72c-8 0-14 6-14 14v120c0 12-10 22-22 22h-72c-12 0-22-10-22-22V120Zm22 0v130c0 2 2 4 4 4h72c2 0 4-2 4-4V132c0-18 10-34 26-42-2-1-4-2-6-2h-72c-2 0-4 2-4 4Zm176 12v118c0 2 2 4 4 4h72c2 0 4-2 4-4V120c0-2-2-4-4-4h-72c-2 0-4 2-4 4Z"/>
+  </g>
+  <text x="28" y="54" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="26" fill="#ffffff" opacity="0.95">Tutoring</text>
+</svg>
+

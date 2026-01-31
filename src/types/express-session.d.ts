@@ -10,6 +10,10 @@ declare module 'express-session' {
       userId: string;
       role: 'USER' | 'MERCHANT' | 'ADMIN';
     };
+
+    cart?: {
+      items: Record<string, number>; // packageId -> quantity
+    };
   }
 }
 

@@ -1,246 +1,117 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>订单查询</title>
+    <title>My Orders</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        [x-cloak] { display: none !important; }
-        
         /* 移动端优化 */
         @media (max-width: 640px) {
             body {
                 font-size: 14px;
             }
-            
-            input, button {
-                font-size: 16px; /* 防止iOS自动缩放 */
-                padding: 0.75rem;
-            }
         }
     </style>
 </head>
 <body class="bg-gray-50">
-    <div x-data="queryOrder()" x-cloak class="min-h-screen pb-8">
-        <!-- Header -->
-        <div class="bg-white shadow-sm sticky top-0 z-10">
-            <div class="max-w-2xl mx-auto px-4 py-3 sm:py-4">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">订单查询</h1>
-                    <a href="/order" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">返回下单</a>
-                </div>
-            </div>
+  <div class="min-h-screen pb-8">
+    <%- include('../partials/topnav', {
+      title: 'My Orders',
+      subtitle: (typeof userEmail !== 'undefined' && userEmail) ? userEmail : '',
+      containerClass: 'max-w-5xl'
+    }) %>
+
+    <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      <!-- <div class="bg-white rounded-xl shadow-sm border p-4">
+        <div class="text-sm text-gray-600">
+          For privacy and security, this page only shows orders for the currently logged-in account.
+        </div>
+      </div> -->
+
+      <% const statusText = { new: 'New', paid_confirmed: 'Payment confirmed', preparing: 'Preparing', delivering: 'Out for delivery', completed: 'Completed', cancelled: 'Cancelled' }; %>
+      <% const statusClass = { new: 'bg-yellow-100 text-yellow-800', paid_confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-purple-100 text-purple-800', delivering: 'bg-indigo-100 text-indigo-800', completed: 'bg-green-100 text-green-800', cancelled: 'bg-red-100 text-red-800' }; %>
+
+      <% if (!orders || orders.length === 0) { %>
+        <div class="bg-white rounded-xl shadow-sm border p-10 text-center">
+          <div class="text-lg font-semibold text-gray-800">No orders yet</div>
+          <div class="mt-2 text-sm text-gray-500">When you place an order, it will show up here automatically.</div>
+          <div class="mt-4">
+            <a href="/order" class="text-sm text-blue-600 hover:text-blue-800">Go to group-buy order →</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+          Found <strong><%= orders.length %></strong> order(s)
         </div>
 
-        <!-- Main Content -->
-        <div class="max-w-2xl mx-auto px-4 py-6">
-            <!-- Query Form -->
-            <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-                <h2 class="text-lg sm:text-xl font-semibold mb-4">输入手机号查询订单</h2>
-                <form @submit.prevent="queryOrders()" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">手机号 *</label>
-                        <input type="tel" 
-                               x-model="phone" 
-                               required
-                               placeholder="请输入下单时使用的手机号"
-                               class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <button type="submit" 
-                            :disabled="querying"
-                            class="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">
-                        <span x-show="!querying">查询订单</span>
-                        <span x-show="querying">查询中...</span>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Loading State -->
-            <div x-show="querying" class="text-center py-12">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p class="mt-4 text-gray-600">查询中...</p>
-            </div>
-
-            <!-- Error State -->
-            <div x-show="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p class="text-red-800" x-text="error"></p>
-            </div>
-
-            <!-- No Orders -->
-            <div x-show="!querying && !error && orders.length === 0 && hasQueried" 
-                 class="bg-white rounded-lg shadow-sm p-8 text-center">
-                <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <p class="text-gray-600 text-lg mb-2">未找到订单</p>
-                <p class="text-gray-500 text-sm">请确认手机号是否正确，或联系客服查询</p>
-            </div>
-
-            <!-- Orders List -->
-            <div x-show="!querying && !error && orders.length > 0" class="space-y-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p class="text-sm text-blue-800">
-                        找到 <strong x-text="orders.length"></strong> 个订单
-                    </p>
+        <div class="space-y-4">
+          <% orders.forEach(function(order) { %>
+            <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+              <div class="flex items-start justify-between mb-4 pb-4 border-b gap-3">
+                <div class="min-w-0">
+                  <div class="text-lg font-semibold text-gray-900">Order</div>
+                  <div class="text-sm text-gray-500">ID: <span class="font-mono"><%= String(order.id).slice(0, 8) %></span></div>
+                  <div class="text-sm text-gray-500">Placed at: <%= new Date(order.createdAt).toLocaleString() %></div>
                 </div>
+                <span class="px-3 py-1 text-xs font-semibold rounded-full <%= statusClass[order.internalStatus] || 'bg-gray-100 text-gray-800' %>">
+                  <%= statusText[order.internalStatus] || order.internalStatus %>
+                </span>
+              </div>
 
-                <template x-for="order in orders" :key="order.id">
-                    <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                        <!-- Order Header -->
-                        <div class="flex items-start justify-between mb-4 pb-4 border-b">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-1">订单信息</h3>
-                                <p class="text-sm text-gray-500">
-                                    订单号：<span class="font-mono" x-text="order.id.substring(0, 8)"></span>
-                                </p>
-                                <p class="text-sm text-gray-500">
-                                    下单时间：<span x-text="formatDate(order.createdAt)"></span>
-                                </p>
-                            </div>
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full" 
-                                  :class="getStatusClass(order.internalStatus)"
-                                  x-text="getStatusText(order.internalStatus)"></span>
-                        </div>
+              <div class="mb-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Delivery</div>
+                <div class="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                  <div><strong>Name:</strong> <%= order.customerName %></div>
+                  <div><strong>Phone:</strong> <%= order.phone %></div>
+                  <div><strong>Address:</strong> <%= order.address %></div>
+                  <div><strong>Delivery time:</strong> <%= order.deliveryTime %></div>
+                </div>
+              </div>
 
-                        <!-- Customer Info -->
-                        <div class="mb-4">
-                            <h4 class="text-sm font-medium text-gray-700 mb-2">收货信息</h4>
-                            <div class="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
-                                <p><strong>姓名：</strong><span x-text="order.customerName"></span></p>
-                                <p><strong>电话：</strong><span x-text="order.phone"></span></p>
-                                <p><strong>地址：</strong><span x-text="order.address"></span></p>
-                                <p><strong>配送时间：</strong><span x-text="order.deliveryTime"></span></p>
-                            </div>
-                        </div>
-
-                        <!-- Order Items -->
-                        <div class="mb-4">
-                            <h4 class="text-sm font-medium text-gray-700 mb-2">商品清单</h4>
-                            <div class="space-y-2">
-                                <template x-for="item in order.items" :key="item.title + item.quantity">
-                                    <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3 text-sm">
-                                        <div class="flex-1">
-                                            <p class="font-medium text-gray-900" x-text="item.title"></p>
-                                            <p class="text-gray-600">数量：<span x-text="item.quantity"></span></p>
-                                        </div>
-                                        <p class="text-gray-900 font-semibold">$<span x-text="parseFloat(item.price).toFixed(2)"></span></p>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Payment Info -->
-                        <div class="mb-4">
-                            <h4 class="text-sm font-medium text-gray-700 mb-2">支付信息</h4>
-                            <div class="bg-gray-50 rounded-lg p-3 text-sm">
-                                <p>
-                                    <strong>支付方式：</strong>
-                                    <span x-text="order.paymentMethod === 'transfer' ? '立即转账' : '送货到户时付款'"></span>
-                                </p>
-                                <template x-if="order.paymentMethod === 'transfer' && order.paymentScreenshotPath">
-                                    <div class="mt-2">
-                                        <p class="text-gray-600 mb-2">付款截图：</p>
-                                        <img :src="order.paymentScreenshotPath" 
-                                             alt="付款截图" 
-                                             class="max-w-full h-auto rounded border border-gray-300">
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Optional Note -->
-                        <template x-if="order.optionalNote">
-                            <div class="mb-4">
-                                <h4 class="text-sm font-medium text-gray-700 mb-2">备注</h4>
-                                <p class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3" x-text="order.optionalNote"></p>
-                            </div>
-                        </template>
+              <div class="mb-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Items</div>
+                <div class="space-y-2">
+                  <% (order.items || []).forEach(function(item) { %>
+                    <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3 text-sm">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900"><%= item.title %></div>
+                        <div class="text-gray-600">Qty: <%= item.quantity %></div>
+                      </div>
+                      <div class="text-gray-900 font-semibold">$<%= Number(item.price).toFixed(2) %></div>
                     </div>
-                </template>
+                  <% }); %>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Payment</div>
+                <div class="bg-gray-50 rounded-lg p-3 text-sm">
+                  <div>
+                    <strong>Method:</strong>
+                    <%= order.paymentMethod === 'transfer' ? 'Bank transfer' : 'Cash on delivery' %>
+                  </div>
+                  <% if (order.paymentMethod === 'transfer' && order.paymentScreenshotPath) { %>
+                    <div class="mt-2">
+                      <div class="text-gray-600 mb-2">Payment proof:</div>
+                      <img src="<%= order.paymentScreenshotPath %>" alt="Payment proof" class="max-w-full h-auto rounded border border-gray-300" />
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+
+              <% if (order.optionalNote) { %>
+                <div>
+                  <div class="text-sm font-medium text-gray-700 mb-2">Note</div>
+                  <div class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3"><%= order.optionalNote %></div>
+                </div>
+              <% } %>
             </div>
+          <% }); %>
         </div>
+      <% } %>
     </div>
-
-    <script>
-        function queryOrder() {
-            return {
-                phone: '',
-                orders: [],
-                querying: false,
-                error: null,
-                hasQueried: false,
-
-                async queryOrders() {
-                    if (!this.phone || !this.phone.trim()) {
-                        this.error = '请输入手机号';
-                        return;
-                    }
-
-                    this.querying = true;
-                    this.error = null;
-                    this.hasQueried = true;
-
-                    try {
-                        const response = await fetch(`/api/orders/query?phone=${encodeURIComponent(this.phone.trim())}`);
-                        const data = await response.json();
-
-                        if (data.error) {
-                            this.error = data.error;
-                            this.orders = [];
-                        } else {
-                            this.orders = data.orders || [];
-                            if (this.orders.length === 0) {
-                                this.error = null; // 没有订单不算错误
-                            }
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        this.error = '查询失败，请检查网络连接后重试';
-                        this.orders = [];
-                    } finally {
-                        this.querying = false;
-                    }
-                },
-
-                formatDate(dateString) {
-                    const date = new Date(dateString);
-                    return date.toLocaleString('zh-CN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    });
-                },
-
-                getStatusText(status) {
-                    const statusMap = {
-                        'new': '新订单',
-                        'paid_confirmed': '已确认付款',
-                        'preparing': '备货中',
-                        'delivering': '派送中',
-                        'completed': '已完成',
-                        'cancelled': '已取消',
-                    };
-                    return statusMap[status] || status;
-                },
-
-                getStatusClass(status) {
-                    const classMap = {
-                        'new': 'bg-yellow-100 text-yellow-800',
-                        'paid_confirmed': 'bg-blue-100 text-blue-800',
-                        'preparing': 'bg-purple-100 text-purple-800',
-                        'delivering': 'bg-indigo-100 text-indigo-800',
-                        'completed': 'bg-green-100 text-green-800',
-                        'cancelled': 'bg-red-100 text-red-800',
-                    };
-                    return classMap[status] || 'bg-gray-100 text-gray-800';
-                },
-            };
-        }
-    </script>
+  </div>
 </body>
 </html>
 

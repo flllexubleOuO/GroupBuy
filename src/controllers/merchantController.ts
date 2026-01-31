@@ -4,6 +4,14 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+function buildStoredImageUrl(file: Express.Multer.File | undefined): string | null {
+  if (!file) return null;
+  const anyFile = file as any;
+  if (anyFile.s3Url) return String(anyFile.s3Url);
+  if (file.filename) return `/uploads/${file.filename}`;
+  return null;
+}
+
 async function getMyMerchant(req: Request) {
   const userId = req.session.auth?.userId;
   if (!userId) return null;
@@ -31,7 +39,19 @@ export const onboardToMerchant = async (req: Request, res: Response) => {
   }
 
   const storeName = String(req.body.storeName || '').trim();
-  if (!storeName) return res.status(400).redirect('/account');
+  if (!storeName) {
+    return res.status(400).render('merchant/upgrade', {
+      error: 'Store name is required.',
+      form: {
+        storeName,
+        contactName: String((req.body as any).contactName || '').trim(),
+        wechat: String((req.body as any).wechat || '').trim(),
+        openHours: String((req.body as any).openHours || '').trim(),
+        address: String((req.body as any).address || '').trim(),
+        description: String((req.body as any).description || '').trim(),
+      },
+    });
+  }
 
   const existing = await prisma.merchant.findFirst({ where: { userId: user.id } });
   if (!existing) {
@@ -58,6 +78,17 @@ export const onboardToMerchant = async (req: Request, res: Response) => {
   return res.redirect('/merchant/dashboard');
 };
 
+export const showMerchantUpgrade = async (req: Request, res: Response) => {
+  const userId = req.session.auth?.userId;
+  if (!userId) return res.redirect('/login');
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.redirect('/login');
+  if (user.role === 'ADMIN') return res.status(403).send('Forbidden');
+  if (user.role === 'MERCHANT') return res.redirect('/merchant/dashboard');
+
+  return res.render('merchant/upgrade', { error: null, form: {} });
+};
+
 export const showMerchantDashboard = async (req: Request, res: Response) => {
   const merchant = await getMyMerchant(req);
   if (!merchant) return res.status(403).send('Merchant profile not found');
@@ -74,6 +105,10 @@ export const updateMerchantProfile = async (req: Request, res: Response) => {
   const merchant = await getMyMerchant(req);
   if (!merchant) return res.status(403).send('Merchant profile not found');
 
+  const uploadedImageUrl = buildStoredImageUrl((req as any).file);
+  const imageUrlFromInput = String((req.body as any).imageUrl || '').trim() || null;
+  const finalImageUrl = uploadedImageUrl || imageUrlFromInput || merchant.imageUrl || null;
+
   const data = {
     name: String(req.body.name || '').trim() || merchant.name,
     contactName: String(req.body.contactName || '').trim() || null,
@@ -83,6 +118,7 @@ export const updateMerchantProfile = async (req: Request, res: Response) => {
     description: String(req.body.description || '').trim() || null,
     address: String(req.body.address || '').trim() || null,
     openHours: String(req.body.openHours || '').trim() || null,
+    imageUrl: finalImageUrl,
   };
 
   await prisma.merchant.update({ where: { id: merchant.id }, data });
@@ -158,3 +194,45 @@ export const deleteMerchantService = async (req: Request, res: Response) => {
   return res.redirect('/merchant/dashboard');
 };
 
+export const showMerchantPackageDetail = async (req: Request, res: Response) => {
+  const merchant = await getMyMerchant(req);
+  if (!merchant) return res.status(403).send('Merchant profile not found');
+
+  const id = String(req.params.id || '');
+  const pkg = await prisma.package.findUnique({ where: { id } });
+  if (!pkg || pkg.merchantId !== merchant.id) return res.status(404).send('Not found');
+
+  let items: any[] = [];
+  try {
+    items = JSON.parse(pkg.itemsJson || '[]');
+  } catch {
+    items = [];
+  }
+
+  let deliveryDates: string[] | null = null;
+  try {
+    deliveryDates = pkg.deliveryDatesJson ? JSON.parse(pkg.deliveryDatesJson) : null;
+  } catch {
+    deliveryDates = null;
+  }
+
+  return res.render('merchant/package-detail', { merchant, pkg, items, deliveryDates });
+};
+
+export const showMerchantServiceDetail = async (req: Request, res: Response) => {
+  const merchant = await getMyMerchant(req);
+  if (!merchant) return res.status(403).send('Merchant profile not found');
+
+  const id = String(req.params.id || '');
+  const svc = await prisma.service.findUnique({ where: { id } });
+  if (!svc || svc.merchantId !== merchant.id) return res.status(404).send('Not found');
+
+  let timeSlots: string[] = [];
+  try {
+    timeSlots = svc.timeSlotsJson ? JSON.parse(svc.timeSlotsJson) : [];
+  } catch {
+    timeSlots = [];
+  }
+
+  return res.render('merchant/service-detail', { merchant, svc, timeSlots });
+};

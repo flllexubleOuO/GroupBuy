@@ -17,11 +17,16 @@ function toFriendlyDbErrorMessage(error: any): string | null {
   // Prisma + SQLite schema mismatch (pending migrations / wrong DB file)
   if (msg.includes('does not exist in the current database') || msg.includes('no such column')) {
     if (msg.includes('Package.merchantId') || msg.includes('Service.merchantId')) {
-      return '数据库结构未更新（缺少 merchantId 等字段）。请确认 .env 的 DATABASE_URL 指向正确的 db，并执行：npm run prisma:migrate，然后重启服务。';
+      return 'Database schema is outdated (missing merchantId, etc). Please ensure DATABASE_URL points to the correct db and run: npm run prisma:migrate, then restart the server.';
     }
-    return '数据库结构与当前代码不一致。请执行：npm run prisma:migrate，然后重启服务。';
+    return 'Database schema does not match the current code. Please run: npm run prisma:migrate, then restart the server.';
   }
   return null;
+}
+
+function toInt(value: unknown, fallback: number): number {
+  const n = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 /**
@@ -29,10 +34,30 @@ function toFriendlyDbErrorMessage(error: any): string | null {
  */
 export const getActivePackages = async (req: Request, res: Response) => {
   try {
-    const packages = await prisma.package.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-    });
+    const page = Math.max(1, toInt(req.query.page, 1));
+    const limit = Math.min(50, Math.max(1, toInt(req.query.limit, 12)));
+    const skip = (page - 1) * limit;
+
+    const qRaw = String(req.query.q || '').trim();
+    const q = qRaw.length ? qRaw.slice(0, 80) : '';
+    const regionRaw = String(req.query.region || '').trim();
+    const region = regionRaw.length ? regionRaw.slice(0, 80) : '';
+
+    const where: any = { isActive: true };
+    if (region) where.region = region;
+    if (q) {
+      where.OR = [{ name: { contains: q } }, { description: { contains: q } }];
+    }
+
+    const [packages, total] = await Promise.all([
+      prisma.package.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      prisma.package.count({ where }),
+    ]);
 
     // 一次性获取所有 Shopify 商品（包含图片信息）
     const { shopifyService } = await import('../services/shopifyService');
@@ -83,11 +108,15 @@ export const getActivePackages = async (req: Request, res: Response) => {
       })
     );
 
-    return res.json({ packages: packagesWithItems });
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    return res.json({
+      packages: packagesWithItems,
+      pagination: { page, limit, total, totalPages },
+    });
   } catch (error: any) {
     console.error('Error fetching packages:', error);
     const friendly = toFriendlyDbErrorMessage(error);
-    return res.status(500).json({ error: '获取套餐列表失败: ' + (friendly || error.message) });
+    return res.status(500).json({ error: 'Failed to load packages: ' + (friendly || error.message) });
   }
 };
 
@@ -153,7 +182,7 @@ export const getAllPackages = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching packages:', error);
     const friendly = toFriendlyDbErrorMessage(error);
-    return res.status(500).json({ error: '获取套餐列表失败: ' + (friendly || error.message) });
+    return res.status(500).json({ error: 'Failed to load packages: ' + (friendly || error.message) });
   }
 };
 
@@ -169,7 +198,7 @@ export const getPackageById = async (req: Request, res: Response) => {
     });
 
     if (!pkg) {
-      return res.status(404).json({ error: '套餐不存在' });
+      return res.status(404).json({ error: 'Package not found' });
     }
 
     // 获取 Shopify 商品图片
@@ -218,7 +247,7 @@ export const getPackageById = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching package:', error);
-    return res.status(500).json({ error: '获取套餐详情失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to load package: ' + error.message });
   }
 };
 
@@ -231,20 +260,20 @@ export const createPackage = async (req: Request, res: Response) => {
 
     // 验证必填字段
     if (!name || !price || !items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: '缺少必填字段：名称、价格、商品列表' });
+      return res.status(400).json({ error: 'Missing required fields: name, price, items' });
     }
 
     // 验证商品数据（现在需要包含 shopifyProductId 和 shopifyVariantId）
     for (const item of items) {
       if (!item.shopifyProductId || !item.shopifyVariantId || !item.quantity) {
-        return res.status(400).json({ error: '商品信息不完整，必须包含 Shopify 商品ID和变体ID' });
+        return res.status(400).json({ error: 'Item data is incomplete. shopifyProductId, shopifyVariantId, and quantity are required.' });
       }
     }
 
     // 验证大区
-    const validRegions = ['中区', '西区', '北岸', '东区'];
+    const validRegions = ['Sydney CBD', 'Inner West', 'North Shore', 'Eastern Suburbs'];
     if (!region || !validRegions.includes(region)) {
-      return res.status(400).json({ error: '请选择有效的大区' });
+      return res.status(400).json({ error: 'Please select a valid region.' });
     }
 
     const pkg = await prisma.package.create({
@@ -273,7 +302,7 @@ export const createPackage = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error creating package:', error);
-    return res.status(500).json({ error: '创建套餐失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to create package: ' + error.message });
   }
 };
 
@@ -289,7 +318,7 @@ export const updatePackage = async (req: Request, res: Response) => {
     if (items && Array.isArray(items)) {
       for (const item of items) {
         if (!item.shopifyProductId || !item.shopifyVariantId || !item.quantity) {
-          return res.status(400).json({ error: '商品信息不完整，必须包含 Shopify 商品ID和变体ID' });
+          return res.status(400).json({ error: 'Item data is incomplete. shopifyProductId, shopifyVariantId, and quantity are required.' });
         }
       }
     }
@@ -306,9 +335,9 @@ export const updatePackage = async (req: Request, res: Response) => {
         : null;
     }
     if (region !== undefined) {
-      const validRegions = ['中区', '西区', '北岸', '东区'];
+      const validRegions = ['Sydney CBD', 'Inner West', 'North Shore', 'Eastern Suburbs'];
       if (region && !validRegions.includes(region)) {
-        return res.status(400).json({ error: '请选择有效的大区' });
+        return res.status(400).json({ error: 'Please select a valid region.' });
       }
       updateData.region = region;
     }
@@ -330,7 +359,7 @@ export const updatePackage = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error updating package:', error);
-    return res.status(500).json({ error: '更新套餐失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to update package: ' + error.message });
   }
 };
 
@@ -348,7 +377,7 @@ export const deletePackage = async (req: Request, res: Response) => {
     return res.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting package:', error);
-    return res.status(500).json({ error: '删除套餐失败: ' + error.message });
+    return res.status(500).json({ error: 'Failed to delete package: ' + error.message });
   }
 };
 

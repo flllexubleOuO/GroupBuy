@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="320" rx="32" fill="url(#bg)"/>
+  <g fill="#ffffff" opacity="0.95">
+    <path d="M270 92c-10 0-18 8-18 18v30h-16c-8 0-14 6-14 14v8h78v-8c0-8-6-14-14-14h-16v-30c0-10-8-18-18-18Zm-70 92h140v18c0 36-29 66-66 66h-8c-36 0-66-29-66-66v-18Zm55-92h30v20h-30V92Z"/>
+    <path d="M140 232c16-4 30-14 40-26l18 10c-16 24-39 40-66 46-6 2-12-2-14-8-2-6 2-12 8-14Zm232-26c10 12 24 22 40 26 6 2 10 8 8 14-2 6-8 10-14 8-27-6-50-22-66-46l18-10Z"/>
+  </g>
+  <text x="28" y="54" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="26" fill="#ffffff" opacity="0.95">Cleaning</text>
+</svg>
