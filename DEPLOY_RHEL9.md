@@ -4,13 +4,13 @@ This project is a Node.js + Express + Prisma app. **In this repo, Prisma migrati
 
 ## Prerequisites
 
-- RHEL 01 server (root or sudo access)
+- RHEL 10 server (root or sudo access)
 - A domain is optional (you can use IP + port)
 - Outbound network access for pulling container images (only needed during install/build)
 
 ## Option A (Recommended): Docker Engine + Docker Compose
 
-### 1) Install Docker Engine on RHEL 9
+### 1) Install Docker Engine on RHEL 10
 
 Follow Docker’s official instructions for RHEL (stable channel).  
 If you already have Docker installed, skip this section.
@@ -57,7 +57,7 @@ cd groupbuy
 
 
 # Clone your repo (or upload via scp/rsync)
-dnf install -y git
+sudo dnf install -y git
 git clone https://github.com/flllexubleOuO/GroupBuy.git .
 ```
 
@@ -117,7 +117,7 @@ Then rebuild/restart:
 docker compose up -d --build
 ```
 
-## SELinux notes (RHEL 9)
+## SELinux notes (RHEL 10)
 
 If your containers cannot write to bind-mounted directories (`public/uploads`, `logs`, `data/sqlite`), you likely need SELinux labeling.
 
