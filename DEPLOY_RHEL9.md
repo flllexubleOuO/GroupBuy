@@ -92,8 +92,8 @@ On SELinux-enforcing hosts, bind mounts may require a label. If you hit permissi
 ### 6) Start the app
 
 ```bash
-docker compose up -d --build
-docker compose ps
+sudo docker compose up -d --build
+sudo docker compose ps
 ```
 
 If the build fails at `npm ci` with a message about a missing `package-lock.json`, either:
