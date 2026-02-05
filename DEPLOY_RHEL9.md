@@ -136,6 +136,37 @@ If you want, tell me whether SELinux is enforcing (`getenforce`) and I can provi
 docker compose logs -f --tail=200 app
 ```
 
+### Seed initial data (populate demo/mock data)
+The container entrypoint can seed automatically, or you can run the seed script manually.
+
+**Option 1: Seed on container start (recommended for demo envs)**
+
+In your `.env`:
+
+```bash
+SEED_ON_START=true
+# If you want it to reseed on every restart:
+SEED_ALWAYS=true
+```
+
+Seeding writes a marker file to the persistent SQLite volume to avoid reseeding on every boot:
+
+- Marker path in container: `/data/.seeded`
+- Host path (default compose volume): `./data/sqlite/.seeded`
+
+To force a one-off reseed without `SEED_ALWAYS=true`, delete the marker and restart:
+
+```bash
+rm -f data/sqlite/.seeded
+docker compose restart app
+```
+
+**Option 2: Run seed manually (anytime)**
+
+```bash
+docker exec group-buy-app npm run seed
+```
+
 ### Restart / update
 
 ```bash
@@ -164,6 +195,7 @@ cp -a data/sqlite/prod.db backups/prod.db.$(date +%F-%H%M%S)
 - **Uploads/logs/db permission denied**: SELinux labeling is the #1 cause on RHEL.
 - **App boots but shows empty data**: seed is optional; enable `SEED_ON_START=true` in mock envs.
 - **App keeps restarting**: check `docker compose logs -f app` for runtime errors.
+- **Prisma/OpenSSL errors in container logs**: if you see messages about missing libssl/OpenSSL, rebuild with the latest `Dockerfile` (it installs `openssl` in the image), then `docker compose up -d --build`.
 
 ## Option B: Podman (RHEL default)
 

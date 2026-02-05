@@ -18,6 +18,33 @@ async function getMyMerchant(req: Request) {
   return prisma.merchant.findFirst({ where: { userId } });
 }
 
+function parseDeliveryDatesInput(raw: string): string[] | null {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+
+  // 1) JSON array form: ["2026-02-18 上午", ...]
+  if (s.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed
+          .map((x) => String(x || '').trim())
+          .filter((x) => x.length > 0);
+        return cleaned.length > 0 ? Array.from(new Set(cleaned)) : null;
+      }
+    } catch {
+      // fall through to plain-text parsing
+    }
+  }
+
+  // 2) Plain text form: one per line, or separated by comma/semicolon
+  const parts = s
+    .split(/\r?\n|,|;|，|；/g)
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0);
+  return parts.length > 0 ? Array.from(new Set(parts)) : null;
+}
+
 function ensureSessionRole(req: Request, role: 'USER' | 'MERCHANT' | 'ADMIN') {
   if (!req.session.auth) return;
   req.session.auth.role = role;
@@ -133,6 +160,18 @@ export const createMerchantPackage = async (req: Request, res: Response) => {
   const price = String(req.body.price || '').trim();
   if (!name || !price) return res.status(400).send('Missing name/price');
 
+  const uploadedImageUrl = buildStoredImageUrl((req as any).file);
+  const imageUrlFromInput = String((req.body as any).imageUrl || '').trim() || null;
+  const finalImageUrl = uploadedImageUrl || imageUrlFromInput || null;
+
+  // Merchant-friendly: allow deliveryDates (plain text or JSON array),
+  // plus backward-compat support for old deliveryDatesJson field name.
+  const deliveryDatesInput = String((req.body as any).deliveryDates || (req.body as any).deliveryDatesJson || '').trim();
+  const deliveryDatesParsed = parseDeliveryDatesInput(deliveryDatesInput);
+  if (!deliveryDatesParsed || deliveryDatesParsed.length === 0) {
+    return res.status(400).send('Missing delivery time options.');
+  }
+
   await prisma.package.create({
     data: {
       name,
@@ -140,11 +179,11 @@ export const createMerchantPackage = async (req: Request, res: Response) => {
       description: String(req.body.description || '').trim() || null,
       originalPrice: String(req.body.originalPrice || '').trim() || null,
       region: String(req.body.region || '').trim() || null,
-      imageUrl: String(req.body.imageUrl || '').trim() || null,
+      imageUrl: finalImageUrl,
       isActive: String(req.body.isActive || '') === 'on',
       sortOrder: Number(req.body.sortOrder || 0) || 0,
       itemsJson: String(req.body.itemsJson || '[]'),
-      deliveryDatesJson: String(req.body.deliveryDatesJson || '').trim() || null,
+      deliveryDatesJson: JSON.stringify(deliveryDatesParsed),
       merchantId: merchant.id,
     },
   });
@@ -168,6 +207,10 @@ export const createMerchantService = async (req: Request, res: Response) => {
   const name = String(req.body.name || '').trim();
   if (!name) return res.status(400).send('Missing name');
 
+  const uploadedImageUrl = buildStoredImageUrl((req as any).file);
+  const imageUrlFromInput = String((req.body as any).imageUrl || '').trim() || null;
+  const finalImageUrl = uploadedImageUrl || imageUrlFromInput || null;
+
   await prisma.service.create({
     data: {
       name,
@@ -175,7 +218,7 @@ export const createMerchantService = async (req: Request, res: Response) => {
       price: String(req.body.price || '').trim() || null,
       durationMins: req.body.durationMins ? Number(req.body.durationMins) : null,
       timeSlotsJson: String(req.body.timeSlotsJson || '').trim() || null,
-      imageUrl: String(req.body.imageUrl || '').trim() || null,
+      imageUrl: finalImageUrl,
       isActive: String(req.body.isActive || '') === 'on',
       sortOrder: Number(req.body.sortOrder || 0) || 0,
       merchantId: merchant.id,
